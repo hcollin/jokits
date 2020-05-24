@@ -1,0 +1,224 @@
+import { JokiEvent } from "./models/JokiInterfaces";
+import processorEngine, { JokiProcessor } from "./engineParts/processorEngine";
+import subscriptionEngine, { JokiSubscriber } from "./engineParts/subscriberEngine";
+import atomEngine, { Atom } from "./engineParts/atomEngine";
+import serviceEngine, { JokiServiceFactory } from "./engineParts/serviceEngine";
+import stateEngine, { JokiMachineState, JokiState } from "./engineParts/stateEngine";
+
+export interface JokiOptions {}
+
+export interface JokiInstance {
+    // Main functions
+    trigger: (event: JokiEvent) => void|Promise<undefined>; // Fire and forget an event
+    on: (listener: JokiSubscriber) => () => void;
+    once: () => void;
+    ask: (event: JokiEvent) => Promise<Map<string, any>>;
+    
+    service: ServiceApi;
+    processor: ProcessorApi;
+    atom: AtomApi;
+    state: StateMachineApi;
+}
+
+export interface ServiceApi {
+    add: <T>(service: JokiServiceFactory<T>) => void;
+    remove: () => void;
+    getState: (serviceId: string) => any; // Get the current state of a service
+}
+
+export interface ProcessorApi {
+    add:(processor: JokiProcessor) => string;
+    remove: (id: string) => void;
+}
+
+export interface StateMachineApi {
+    init: (statuses: JokiMachineState[]) => void;
+    get: () => JokiState;
+    set:(status: string) => void;
+    listen: (fn: (state: JokiState) => void) => () => void;
+}
+
+export interface AtomApi {
+    get: <T>(atomId: string) => Atom<T>;
+    set: <T>(atomId: string, value: T) => void;
+}
+
+export interface JokiServiceApi {
+    // update: () => void;     // Service state has updated, info others
+    // ask: () => void;        // Ask for the state of another service
+    api: JokiInternalApi;
+    updated: (state: any) => void;
+
+
+}
+
+export interface JokiInternalApi {
+    get: <T>(atomId: string) => Atom<T>; // Get Atom
+    set: <T>(atomId: string, value: T) => void; // Create Atom and/or Set value for atom
+    trigger: (event: JokiEvent) => void|(Promise<undefined>);
+    getState: () => JokiState;
+}
+
+export default function createJoki(options: JokiOptions): JokiInstance {
+    const PROCESSOR = processorEngine();
+    const SUBSCRIBER = subscriptionEngine();
+    const ATOMS = atomEngine();
+    const SERVICES = serviceEngine();
+    const STATEMACHINE = stateEngine();
+
+    // MAIN FUNCTIONS
+
+    function trigger(event: JokiEvent): void|Promise<undefined> {
+        if(event.async === true)  {
+            return new Promise(async (resolve, reject) => {
+                const ev: JokiEvent = await PROCESSOR.run(Object.freeze(event), internalApi());
+                await SUBSCRIBER.run(ev);
+                await SERVICES.run(ev);
+                resolve();
+                
+            
+            });
+        } else {
+            const ev: JokiEvent = PROCESSOR.run(Object.freeze(event), internalApi());
+            SUBSCRIBER.run(ev);
+            SERVICES.run(ev);
+        }
+    }
+
+    function ask(event: JokiEvent): Promise<Map<string, any>> {
+
+        return new Promise( async (resolve, reject) => {
+            const ev: JokiEvent = await PROCESSOR.run(Object.freeze(event), internalApi());
+            const res: Map<string, any> = await SERVICES.run(ev);
+            if(ev.to !== undefined) {
+                const atom = ATOMS.get(ev.to);
+                if(atom) {
+                    if(!res.has(atom.id)) {
+                        res.set(atom.id, atom.get());
+                    }
+                }
+
+            }
+            resolve(res);
+        });
+    }
+
+    
+    // PROCESSOR FUNCTIONS
+
+    function addProcessor(processor: JokiProcessor): string {
+        return PROCESSOR.add(processor);
+    }
+
+    function removeProcessor(id: string) {
+        PROCESSOR.remove(id);
+    }
+
+    // SUBSCRIBER FUNCTIONS
+
+    function on(subscriber: JokiSubscriber) {
+        return SUBSCRIBER.add(subscriber);
+    }
+
+    function once() {}
+
+    // SERVICE FUNCTIONS
+
+    function addService<T>(service: JokiServiceFactory<T>) {
+        SERVICES.add<T>(service, serviceApi(service.serviceId));
+    }
+
+    function removeService() {}
+
+    function getServiceState(serviceId: string): any {
+        return SERVICES.getServiceState(serviceId);
+    }
+
+    // ATOM FUNCTIONS
+    function setAtom<T>(atomId: string, value: T | undefined) {
+        if (!ATOMS.has(atomId)) {
+            ATOMS.create<T>(atomId, value);
+        } else {
+            const atom = ATOMS.get<T>(atomId);
+            atom.set(value);
+        }
+    }
+
+    function getAtom<T>(atomId: string): Atom<T> | undefined {
+        return ATOMS.get(atomId);
+    }
+
+    // STATE MACHINE FUNCTIONS
+
+    function statusInit(states: JokiMachineState[]) {
+        STATEMACHINE.setStates(states);
+    }
+
+    function getStatus(): JokiState {
+        return STATEMACHINE.get(internalApi());
+    }
+
+    function changeStatus(newStatus: string): void {
+        STATEMACHINE.change(newStatus, internalApi());
+    }
+
+    function listenMachine(fn: (value: JokiState) => void): () => void {
+        return STATEMACHINE.listen(fn);
+    }
+
+    // INTERNAL API FUNCTIONS
+
+    function serviceApi(serviceId: string): JokiServiceApi {
+        return {
+            api: internalApi(),
+            updated: (state: any) => {
+                trigger({
+                    from: serviceId,
+                    action: "ServiceStateUpdated",
+                    data: state
+                });
+            }
+
+        };
+    }
+
+    function internalApi(): JokiInternalApi {
+        return {
+            get: getAtom,
+            set: setAtom,
+            trigger,
+            getState: getStatus,
+
+        };
+    }
+
+    return {
+        trigger,
+        on,
+        once,
+        ask,
+
+        service: {
+            add: addService,
+            remove: removeService,
+            getState: getServiceState,
+        },
+
+        processor: {
+            add: addProcessor,
+            remove: removeProcessor,
+        },
+
+        atom: {
+            get: getAtom,
+            set: setAtom,
+        },
+
+        state:{
+            get: getStatus,
+            set: changeStatus,
+            init: statusInit,
+            listen: listenMachine,
+        }
+    };
+}
