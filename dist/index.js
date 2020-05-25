@@ -73,49 +73,49 @@
         return "id-" + pre + "-" + idNumber++;
     }
 
-    function processorEngine() {
-        var processors = [];
-        function add(processor) {
+    function interceptorEngine() {
+        var interceptors = [];
+        function add(interceptor) {
             var id = idGen("pro");
-            var pro = __assign(__assign({}, processor), { _id: id });
-            processors.push(pro);
+            var pro = __assign(__assign({}, interceptor), { _id: id });
+            interceptors.push(pro);
             return pro._id;
         }
         function remove(id) {
-            processors = processors.filter(function (p) { return p._id !== id; });
+            interceptors = interceptors.filter(function (p) { return p._id !== id; });
         }
         function run(event, api) {
-            var newEvent = processors.reduce(function (ev, pro) {
+            var newEvent = interceptors.reduce(function (ev, interceptor) {
                 var execute = false;
-                if (pro.to && ev.to) {
-                    if (pro.to === ev.to) {
+                if (interceptor.to && ev.to) {
+                    if (interceptor.to === ev.to) {
                         execute = true;
                     }
                     else {
                         return ev;
                     }
                 }
-                if (pro.from && ev.from) {
-                    if (pro.from === ev.from) {
+                if (interceptor.from && ev.from) {
+                    if (interceptor.from === ev.from) {
                         execute = true;
                     }
                     else {
                         return ev;
                     }
                 }
-                if (pro.action && ev.action) {
-                    if (pro.action === ev.action) {
+                if (interceptor.action && ev.action) {
+                    if (interceptor.action === ev.action) {
                         execute = true;
                     }
                     else {
                         return ev;
                     }
                 }
-                if (pro.to === undefined && pro.from === undefined && pro.action === undefined)
+                if (interceptor.to === undefined && interceptor.from === undefined && interceptor.action === undefined)
                     execute = true;
-                api.log("DEBUG", "Processor:Run : E" + execute, [pro, event]);
+                api.log("DEBUG", "Interceptor:Run : E" + execute, [interceptor, event]);
                 if (execute) {
-                    return pro.fn(ev, api);
+                    return interceptor.fn(ev, api);
                 }
                 return ev;
             }, __assign({}, event));
@@ -392,7 +392,7 @@
         var configs = {
             logger: "OFF"
         };
-        var PROCESSOR = processorEngine();
+        var INTERCEPTOR = interceptorEngine();
         var SUBSCRIBER = subscriptionEngine();
         var ATOMS = atomEngine();
         var SERVICES = serviceEngine();
@@ -406,7 +406,7 @@
                     var ev;
                     return __generator(this, function (_a) {
                         switch (_a.label) {
-                            case 0: return [4 /*yield*/, PROCESSOR.run(Object.freeze(event), internalApi())];
+                            case 0: return [4 /*yield*/, INTERCEPTOR.run(Object.freeze(event), internalApi())];
                             case 1:
                                 ev = _a.sent();
                                 return [4 /*yield*/, SUBSCRIBER.run(ev)];
@@ -422,7 +422,7 @@
                 }); });
             }
             else {
-                var ev = PROCESSOR.run(Object.freeze(event), internalApi());
+                var ev = INTERCEPTOR.run(Object.freeze(event), internalApi());
                 SUBSCRIBER.run(ev);
                 SERVICES.run(ev);
             }
@@ -433,7 +433,7 @@
                 var ev, res, atom;
                 return __generator(this, function (_a) {
                     switch (_a.label) {
-                        case 0: return [4 /*yield*/, PROCESSOR.run(Object.freeze(event), internalApi())];
+                        case 0: return [4 /*yield*/, INTERCEPTOR.run(Object.freeze(event), internalApi())];
                         case 1:
                             ev = _a.sent();
                             return [4 /*yield*/, SERVICES.run(ev)];
@@ -453,13 +453,13 @@
                 });
             }); });
         }
-        // PROCESSOR FUNCTIONS
-        function addProcessor(processor) {
-            _log("DEBUG", "New Processor", processor);
-            return PROCESSOR.add(processor);
+        // INTERCEPTOR FUNCTIONS
+        function addInterceptor(interceptor) {
+            _log("DEBUG", "New Interceptor", interceptor);
+            return INTERCEPTOR.add(interceptor);
         }
-        function removeProcessor(id) {
-            PROCESSOR.remove(id);
+        function removeInterceptor(id) {
+            INTERCEPTOR.remove(id);
         }
         // SUBSCRIBER FUNCTIONS
         function on(subscriber) {
@@ -482,7 +482,7 @@
                 action: "getServiceState",
                 data: state
             };
-            var eventPostProcessing = PROCESSOR.run(eventPreProcessing, internalApi());
+            var eventPostProcessing = INTERCEPTOR.run(eventPreProcessing, internalApi());
             return eventPostProcessing.data;
         }
         // ATOM FUNCTIONS
@@ -559,9 +559,9 @@
                 remove: removeService,
                 getState: getServiceState
             },
-            processor: {
-                add: addProcessor,
-                remove: removeProcessor
+            interceptor: {
+                add: addInterceptor,
+                remove: removeInterceptor
             },
             atom: {
                 get: getAtom,

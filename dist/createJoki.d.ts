@@ -1,5 +1,5 @@
 import { JokiEvent } from "./models/JokiInterfaces";
-import { JokiProcessor } from "./engineParts/processorEngine";
+import { JokiInterceptor } from "./engineParts/interceptorEngine";
 import { JokiSubscriber } from "./engineParts/subscriberEngine";
 import { JokiAtom } from "./engineParts/atomEngine";
 import { JokiServiceFactory } from "./engineParts/serviceEngine";
@@ -12,7 +12,7 @@ export interface JokiInstance {
     once: () => void;
     ask: (event: JokiEvent) => Promise<Map<string, any>>;
     service: ServiceApi;
-    processor: ProcessorApi;
+    interceptor: InterceptorApi;
     atom: AtomApi;
     state: StateMachineApi;
     config: (key: string, value: string) => void;
@@ -25,8 +25,8 @@ export interface ServiceApi {
     remove: (serviceId: string) => void;
     getState: (serviceId: string) => any;
 }
-export interface ProcessorApi {
-    add: (processor: JokiProcessor) => string;
+export interface InterceptorApi {
+    add: (interceptor: JokiInterceptor) => string;
     remove: (id: string) => void;
 }
 export interface StateMachineApi {
