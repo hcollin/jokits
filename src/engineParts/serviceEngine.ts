@@ -17,7 +17,7 @@ interface ServiceContainer {
 }
 
 export interface JokiService<T> {
-    eventHandler: (event: JokiEvent) => void;
+    eventHandler: (event: JokiEvent) => undefined|T|T[]|Map<string, T>|(Promise<T|T[]|Map<string, T>|undefined>)|void;
     getState: () => T|T[]|Map<string, T>|undefined;
 }
 
