@@ -3,11 +3,12 @@ import { JokiEvent } from "./models/JokiInterfaces";
 import { JokiSubscriber } from "./engineParts/subscriberEngine";
 import { JokiServiceFactory } from "./engineParts/serviceEngine";
 import { JokiMachineState, JokiState } from "./engineParts/stateEngine";
-import { JokiProcessor } from "./engineParts/processorEngine";
+import { JokiInterceptor } from "./engineParts/interceptorEngine";
 import { JokiAtom } from "./engineParts/atomEngine";
 
 export default createJoki;
 
+// TYPES
 export {
     JokiEvent,
     JokiSubscriber,
@@ -15,7 +16,7 @@ export {
     JokiInstance,
     JokiMachineState,
     JokiState,
-    JokiProcessor,
+    JokiInterceptor,
     JokiInternalApi,
     JokiServiceApi,
     JokiAtom,

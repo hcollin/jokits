@@ -4,5 +4,6 @@ import { JokiSubscriber } from "./engineParts/subscriberEngine";
 import { JokiServiceFactory } from "./engineParts/serviceEngine";
 import { JokiMachineState, JokiState } from "./engineParts/stateEngine";
 import { JokiProcessor } from "./engineParts/processorEngine";
+import { JokiAtom } from "./engineParts/atomEngine";
 export default createJoki;
-export { JokiEvent, JokiSubscriber, JokiServiceFactory, JokiInstance, JokiMachineState, JokiState, JokiProcessor, JokiInternalApi, JokiServiceApi, };
+export { JokiEvent, JokiSubscriber, JokiServiceFactory, JokiInstance, JokiMachineState, JokiState, JokiProcessor, JokiInternalApi, JokiServiceApi, JokiAtom, };

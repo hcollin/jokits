@@ -1,5 +1,5 @@
 import { JokiEvent } from "./models/JokiInterfaces";
-import processorEngine, { JokiProcessor } from "./engineParts/processorEngine";
+import interceptorEngine, { JokiInterceptor } from "./engineParts/interceptorEngine";
 import subscriptionEngine, { JokiSubscriber } from "./engineParts/subscriberEngine";
 import atomEngine, { JokiAtom } from "./engineParts/atomEngine";
 import serviceEngine, { JokiServiceFactory } from "./engineParts/serviceEngine";
@@ -15,7 +15,7 @@ export interface JokiInstance {
     ask: (event: JokiEvent) => Promise<Map<string, any>>;
     
     service: ServiceApi;
-    processor: ProcessorApi;
+    interceptor: InterceptorApi;
     atom: AtomApi;
     state: StateMachineApi;
     
@@ -32,8 +32,8 @@ export interface ServiceApi {
     getState: (serviceId: string) => any; // Get the current state of a service
 }
 
-export interface ProcessorApi {
-    add:(processor: JokiProcessor) => string;
+export interface InterceptorApi {
+    add:(interceptor: JokiInterceptor) => string;
     remove: (id: string) => void;
 }
 
@@ -74,7 +74,7 @@ export default function createJoki(options: JokiOptions): JokiInstance {
         logger: "OFF"
     };
 
-    const PROCESSOR = processorEngine();
+    const INTERCEPTOR = interceptorEngine();
     const SUBSCRIBER = subscriptionEngine();
     const ATOMS = atomEngine();
     const SERVICES = serviceEngine();
@@ -86,7 +86,7 @@ export default function createJoki(options: JokiOptions): JokiInstance {
         _log("DEBUG", `TriggerEvent`, event);
         if(event.async === true)  {
             return new Promise(async (resolve, reject) => {
-                const ev: JokiEvent = await PROCESSOR.run(Object.freeze(event), internalApi());
+                const ev: JokiEvent = await INTERCEPTOR.run(Object.freeze(event), internalApi());
                 await SUBSCRIBER.run(ev);
                 await SERVICES.run(ev);
                 resolve();
@@ -94,7 +94,7 @@ export default function createJoki(options: JokiOptions): JokiInstance {
             
             });
         } else {
-            const ev: JokiEvent = PROCESSOR.run(Object.freeze(event), internalApi());
+            const ev: JokiEvent = INTERCEPTOR.run(Object.freeze(event), internalApi());
             SUBSCRIBER.run(ev);
             SERVICES.run(ev);
         }
@@ -103,7 +103,7 @@ export default function createJoki(options: JokiOptions): JokiInstance {
     function ask(event: JokiEvent): Promise<Map<string, any>> {
 
         return new Promise( async (resolve, reject) => {
-            const ev: JokiEvent = await PROCESSOR.run(Object.freeze(event), internalApi());
+            const ev: JokiEvent = await INTERCEPTOR.run(Object.freeze(event), internalApi());
             const res: Map<string, any> = await SERVICES.run(ev);
             if(ev.to !== undefined) {
                 const atom = ATOMS.get(ev.to);
@@ -119,15 +119,15 @@ export default function createJoki(options: JokiOptions): JokiInstance {
     }
 
     
-    // PROCESSOR FUNCTIONS
+    // INTERCEPTOR FUNCTIONS
 
-    function addProcessor(processor: JokiProcessor): string {
-        _log("DEBUG", `New Processor`, processor);
-        return PROCESSOR.add(processor);
+    function addInterceptor(interceptor: JokiInterceptor): string {
+        _log("DEBUG", `New Interceptor`, interceptor);
+        return INTERCEPTOR.add(interceptor);
     }
 
-    function removeProcessor(id: string) {
-        PROCESSOR.remove(id);
+    function removeInterceptor(id: string) {
+        INTERCEPTOR.remove(id);
     }
 
     // SUBSCRIBER FUNCTIONS
@@ -158,7 +158,7 @@ export default function createJoki(options: JokiOptions): JokiInstance {
             data: state,
         };
 
-        const eventPostProcessing: JokiEvent = PROCESSOR.run(eventPreProcessing, internalApi());
+        const eventPostProcessing: JokiEvent = INTERCEPTOR.run(eventPreProcessing, internalApi());
         return eventPostProcessing.data;
     }
 
@@ -249,9 +249,9 @@ export default function createJoki(options: JokiOptions): JokiInstance {
             getState: getServiceState,
         },
 
-        processor: {
-            add: addProcessor,
-            remove: removeProcessor,
+        interceptor: {
+            add: addInterceptor,
+            remove: removeInterceptor,
         },
 
         atom: {

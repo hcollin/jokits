@@ -2,61 +2,61 @@ import { JokiEvent } from "@App/models/JokiInterfaces";
 import { JokiInternalApi } from "@App/createJoki";
 import idGen from "../utils/idGenerator";
 
-export interface JokiProcessor {
+export interface JokiInterceptor {
     to?: string; // Events going to this target
     from?: string; // Events coming from this source
     action?: string; // Events with this action
     fn: (event: JokiEvent, api: JokiInternalApi) => JokiEvent;
 }
 
-interface JokiProcessorInternal extends JokiProcessor {
+interface JokiInterceptorInternal extends JokiInterceptor {
     _id: string;
 }
 
-export default function processorEngine() {
-    let processors: JokiProcessorInternal[] = [];
+export default function interceptorEngine() {
+    let interceptors: JokiInterceptorInternal[] = [];
 
-    function add(processor: JokiProcessor): string {
+    function add(interceptor: JokiInterceptor): string {
         const id = idGen("pro");
-        const pro: JokiProcessorInternal = { ...processor, _id: id };
-        processors.push(pro);
+        const pro: JokiInterceptorInternal = { ...interceptor, _id: id };
+        interceptors.push(pro);
         return pro._id;
     }
 
     function remove(id: string) {
-        processors = processors.filter((p: JokiProcessorInternal) => p._id !== id);
+        interceptors = interceptors.filter((p: JokiInterceptorInternal) => p._id !== id);
     }
 
     function run(event: JokiEvent, api: JokiInternalApi): JokiEvent {
-        const newEvent: JokiEvent = processors.reduce(
-            (ev: JokiEvent, pro: JokiProcessorInternal) => {
+        const newEvent: JokiEvent = interceptors.reduce(
+            (ev: JokiEvent, interceptor: JokiInterceptorInternal) => {
                 let execute = false;
-                if (pro.to && ev.to) {
-                    if (pro.to === ev.to) {
+                if (interceptor.to && ev.to) {
+                    if (interceptor.to === ev.to) {
                         execute = true;
                     } else {
                         return ev;
                     }
                 }
-                if (pro.from && ev.from) {
-                    if (pro.from === ev.from) {
+                if (interceptor.from && ev.from) {
+                    if (interceptor.from === ev.from) {
                         execute = true;
                     } else {
                         return ev;
                     }
                 }
-                if (pro.action && ev.action) {
-                    if (pro.action === ev.action) {
+                if (interceptor.action && ev.action) {
+                    if (interceptor.action === ev.action) {
                         execute = true;
                     } else {
                         return ev;
                     }
                 }
-                if (pro.to === undefined && pro.from === undefined && pro.action === undefined) execute = true;
+                if (interceptor.to === undefined && interceptor.from === undefined && interceptor.action === undefined) execute = true;
 
-                api.log("DEBUG", `Processor:Run : E${execute}`, [pro, event]);
+                api.log("DEBUG", `Interceptor:Run : E${execute}`, [interceptor, event]);
                 if (execute) {
-                    return pro.fn(ev, api);
+                    return interceptor.fn(ev, api);
                 }
 
                 return ev;

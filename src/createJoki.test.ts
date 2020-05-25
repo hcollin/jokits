@@ -5,7 +5,7 @@ import { JokiState } from "./engineParts/stateEngine";
 import { JokiService } from "./engineParts/serviceEngine";
 
 describe("createJoki", () => {
-    it("Simple trigger, processor, listener", () => {
+    it("Simple trigger, interceptor, listener", () => {
         const joki = createJoki({});
 
         joki.on({
@@ -15,7 +15,7 @@ describe("createJoki", () => {
             },
         });
 
-        joki.processor.add({
+        joki.interceptor.add({
             to: "alpha",
             fn: (e: JokiEvent, api: JokiInternalApi) => {
                 expect(e.data).toBe("Foo Bar");
@@ -24,7 +24,7 @@ describe("createJoki", () => {
             },
         });
 
-        joki.processor.add({
+        joki.interceptor.add({
             to: "beta",
             fn: (e: JokiEvent) => {
                 expect("This should never run").toBe(1);

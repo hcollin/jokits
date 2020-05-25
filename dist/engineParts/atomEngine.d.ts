@@ -1,4 +1,4 @@
-export interface Atom<T> {
+export interface JokiAtom<T> {
     id: string;
     subscribe: (fn: (value: T) => void, once?: boolean) => () => void;
     set: (newValue: T) => void;
@@ -20,7 +20,7 @@ export interface AtomSubscriberContainer<T> {
 }
 export interface AtomEngine {
     create: <T>(atomId: string, defaultValue: T) => boolean;
-    get: <T>(atomId: string) => Atom<T>;
+    get: <T>(atomId: string) => JokiAtom<T>;
     remove: <T>(atomId: string) => void;
     has: (atomId: string) => boolean;
 }
