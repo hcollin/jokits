@@ -1,11 +1,15 @@
 {
     "name": "jokits",
     "version": "0.1.0",
-    "description": "Event Based Data Storage Framework",
+    "description": "Event based state container framework",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
+    "repository": {
+        "url": "https://github.com/hcollin/jokits"
+    },
     "scripts": {
-        "build": "rollup -c"
+        "build": "rollup -c",
+        "test": "jest --watch"
     },
     "author": "Henrik Collin",
     "license": "MIT",
