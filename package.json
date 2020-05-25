@@ -1,15 +1,13 @@
 {
-    "name": "joki-ts",
+    "name": "jokits",
     "version": "0.1.0",
     "description": "Event Based Data Storage Framework",
-    "main": "dist/jokits.cjs.js",
-    "module": "dist/jokits.esm.js",
-    "browser": "dist/jokits.umd.js",
-    "types": "dist/jokits.d.ts",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
     "scripts": {
         "build": "rollup -c"
     },
-    "author": "Henrik Collin <hcollin78@gmail.com>",
+    "author": "Henrik Collin",
     "license": "MIT",
     "dependencies": {
        

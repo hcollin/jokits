@@ -18,11 +18,17 @@ export interface JokiInstance {
     processor: ProcessorApi;
     atom: AtomApi;
     state: StateMachineApi;
+    
+    config: (key: string, value: string) => void;
+}
+
+export interface JokiConfigs {
+    logger: string; // OFF|ON
 }
 
 export interface ServiceApi {
     add: <T>(service: JokiServiceFactory<T>) => void;
-    remove: () => void;
+    remove: (serviceId: string) => void;
     getState: (serviceId: string) => any; // Get the current state of a service
 }
 
@@ -41,6 +47,7 @@ export interface StateMachineApi {
 export interface AtomApi {
     get: <T>(atomId: string) => Atom<T>;
     set: <T>(atomId: string, value: T) => void;
+    has: (atomId: string) => boolean;
 }
 
 export interface JokiServiceApi {
@@ -57,9 +64,16 @@ export interface JokiInternalApi {
     set: <T>(atomId: string, value: T) => void; // Create Atom and/or Set value for atom
     trigger: (event: JokiEvent) => void|(Promise<undefined>);
     getState: () => JokiState;
+    log: (level: "DEBUG"|"WARN"|"ERROR", msg: string, additional?: any) => void;
 }
 
 export default function createJoki(options: JokiOptions): JokiInstance {
+
+
+    const configs: JokiConfigs = {
+        logger: "OFF"
+    };
+
     const PROCESSOR = processorEngine();
     const SUBSCRIBER = subscriptionEngine();
     const ATOMS = atomEngine();
@@ -69,6 +83,7 @@ export default function createJoki(options: JokiOptions): JokiInstance {
     // MAIN FUNCTIONS
 
     function trigger(event: JokiEvent): void|Promise<undefined> {
+        _log("DEBUG", `TriggerEvent`, event);
         if(event.async === true)  {
             return new Promise(async (resolve, reject) => {
                 const ev: JokiEvent = await PROCESSOR.run(Object.freeze(event), internalApi());
@@ -107,6 +122,7 @@ export default function createJoki(options: JokiOptions): JokiInstance {
     // PROCESSOR FUNCTIONS
 
     function addProcessor(processor: JokiProcessor): string {
+        _log("DEBUG", `New Processor`, processor);
         return PROCESSOR.add(processor);
     }
 
@@ -125,19 +141,32 @@ export default function createJoki(options: JokiOptions): JokiInstance {
     // SERVICE FUNCTIONS
 
     function addService<T>(service: JokiServiceFactory<T>) {
+        _log("DEBUG", `New Service`, service);
         SERVICES.add<T>(service, serviceApi(service.serviceId));
     }
 
-    function removeService() {}
+    function removeService(serviceId: string) {
+        console.log("TODO: Remove service id ", serviceId);
+    }
 
     function getServiceState(serviceId: string): any {
-        return SERVICES.getServiceState(serviceId);
+        const state = SERVICES.getServiceState(serviceId);
+        // Run state through processors with getServiceState
+        const eventPreProcessing: JokiEvent = {
+            from: serviceId,
+            action: "getServiceState",
+            data: state,
+        };
+
+        const eventPostProcessing: JokiEvent = PROCESSOR.run(eventPreProcessing, internalApi());
+        return eventPostProcessing.data;
     }
 
     // ATOM FUNCTIONS
     function setAtom<T>(atomId: string, value: T | undefined) {
         if (!ATOMS.has(atomId)) {
             ATOMS.create<T>(atomId, value);
+            _log("DEBUG", `NewAtom ${atomId}`);
         } else {
             const atom = ATOMS.get<T>(atomId);
             atom.set(value);
@@ -188,8 +217,24 @@ export default function createJoki(options: JokiOptions): JokiInstance {
             set: setAtom,
             trigger,
             getState: getStatus,
-
+            log: _log,
         };
+    }
+
+    function config(key: keyof JokiConfigs, value: string) {
+        if(configs[key]) {
+            configs[key] = value;
+        }
+    }
+
+    function _log(level: "DEBUG"|"WARN"|"ERROR", msg: string, additional?: any) {
+        if(configs.logger ==="ON") {
+            if(additional !== undefined) {
+                console.log(`JOKITS:${level}: ${msg}`, additional);
+            } else {
+                console.log(`JOKITS:${level}: ${msg}`);
+            }
+        }
     }
 
     return {
@@ -212,6 +257,7 @@ export default function createJoki(options: JokiOptions): JokiInstance {
         atom: {
             get: getAtom,
             set: setAtom,
+            has: ATOMS.has,
         },
 
         state:{
@@ -219,6 +265,8 @@ export default function createJoki(options: JokiOptions): JokiInstance {
             set: changeStatus,
             init: statusInit,
             listen: listenMachine,
-        }
+        },
+
+        config
     };
 }

@@ -3,9 +3,9 @@ import { JokiInternalApi } from "@App/createJoki";
 import idGen from "../utils/idGenerator";
 
 export interface JokiProcessor {
-    to?: string;        // Events going to this target
-    from?: string;      // Events coming from this source
-    action?: string;    // Events with this action
+    to?: string; // Events going to this target
+    from?: string; // Events coming from this source
+    action?: string; // Events with this action
     fn: (event: JokiEvent, api: JokiInternalApi) => JokiEvent;
 }
 
@@ -28,35 +28,41 @@ export default function processorEngine() {
     }
 
     function run(event: JokiEvent, api: JokiInternalApi): JokiEvent {
-        const newEvent: JokiEvent = processors.reduce((ev: JokiEvent, pro: JokiProcessorInternal) => {
-            let execute = false;
-            if (pro.to && ev.to) {
-                if (pro.to === ev.to) {
-                    execute = true;
-                } else {
-                    return ev;
+        const newEvent: JokiEvent = processors.reduce(
+            (ev: JokiEvent, pro: JokiProcessorInternal) => {
+                let execute = false;
+                if (pro.to && ev.to) {
+                    if (pro.to === ev.to) {
+                        execute = true;
+                    } else {
+                        return ev;
+                    }
                 }
-            }
-            if (pro.from && ev.from) {
-                if (pro.from === ev.from) {
-                    execute = true;
-                } else {
-                    return ev;
+                if (pro.from && ev.from) {
+                    if (pro.from === ev.from) {
+                        execute = true;
+                    } else {
+                        return ev;
+                    }
                 }
-            }
-            if (pro.action && ev.action) {
-                if (pro.action === ev.action) {
-                    execute = true;
-                } else {
-                    return ev;
+                if (pro.action && ev.action) {
+                    if (pro.action === ev.action) {
+                        execute = true;
+                    } else {
+                        return ev;
+                    }
                 }
-            }
-            if (execute) {
-                return pro.fn(ev, api);
-            }
+                if (pro.to === undefined && pro.from === undefined && pro.action === undefined) execute = true;
 
-            return ev;
-        }, {...event});
+                api.log("DEBUG", `Processor:Run : E${execute}`, [pro, event]);
+                if (execute) {
+                    return pro.fn(ev, api);
+                }
+
+                return ev;
+            },
+            { ...event }
+        );
         return Object.freeze(newEvent);
     }
 

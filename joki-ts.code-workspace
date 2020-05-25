@@ -1,10 +1,13 @@
 {
 	"folders": [
 		{
-			"path": "..\\BusStore"
+			"path": "."
 		},
 		{
-			"path": "."
+			"path": "..\\jokits-react"
+		},
+		{
+			"path": "..\\jokits-test"
 		}
 	],
 	"settings": {}
