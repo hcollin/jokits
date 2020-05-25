@@ -1,7 +1,7 @@
 import { JokiEvent } from "./models/JokiInterfaces";
 import processorEngine, { JokiProcessor } from "./engineParts/processorEngine";
 import subscriptionEngine, { JokiSubscriber } from "./engineParts/subscriberEngine";
-import atomEngine, { Atom } from "./engineParts/atomEngine";
+import atomEngine, { JokiAtom } from "./engineParts/atomEngine";
 import serviceEngine, { JokiServiceFactory } from "./engineParts/serviceEngine";
 import stateEngine, { JokiMachineState, JokiState } from "./engineParts/stateEngine";
 
@@ -45,7 +45,7 @@ export interface StateMachineApi {
 }
 
 export interface AtomApi {
-    get: <T>(atomId: string) => Atom<T>;
+    get: <T>(atomId: string) => JokiAtom<T>;
     set: <T>(atomId: string, value: T) => void;
     has: (atomId: string) => boolean;
 }
@@ -60,7 +60,7 @@ export interface JokiServiceApi {
 }
 
 export interface JokiInternalApi {
-    get: <T>(atomId: string) => Atom<T>; // Get Atom
+    get: <T>(atomId: string) => JokiAtom<T>; // Get Atom
     set: <T>(atomId: string, value: T) => void; // Create Atom and/or Set value for atom
     trigger: (event: JokiEvent) => void|(Promise<undefined>);
     getState: () => JokiState;
@@ -173,7 +173,7 @@ export default function createJoki(options: JokiOptions): JokiInstance {
         }
     }
 
-    function getAtom<T>(atomId: string): Atom<T> | undefined {
+    function getAtom<T>(atomId: string): JokiAtom<T> | undefined {
         return ATOMS.get(atomId);
     }
 

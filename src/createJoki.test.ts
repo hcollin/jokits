@@ -1,6 +1,6 @@
 import createJoki, { JokiServiceApi, JokiInternalApi } from "./createJoki";
 import { JokiEvent } from "./models/JokiInterfaces";
-import { Atom } from "./engineParts/atomEngine";
+import { JokiAtom } from "./engineParts/atomEngine";
 import { JokiState } from "./engineParts/stateEngine";
 import { JokiService } from "./engineParts/serviceEngine";
 
@@ -46,7 +46,7 @@ describe("createJoki", () => {
 
         joki.atom.set<string>("test", "foo");
 
-        const atom: Atom<string> = joki.atom.get<string>("test");
+        const atom: JokiAtom<string> = joki.atom.get<string>("test");
 
         const stop = atom.subscribe((val: string) => {
             expect(val).toBe("bar");

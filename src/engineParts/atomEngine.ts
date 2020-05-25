@@ -1,4 +1,4 @@
-export interface Atom<T> {
+export interface JokiAtom<T> {
     id: string;
     subscribe: (fn: (value: T) => void, once?: boolean) => () => void;
     set: (newValue: T) => void;
@@ -24,7 +24,7 @@ export interface AtomSubscriberContainer<T> {
 
 export interface AtomEngine {
     create: <T>(atomId: string, defaultValue: T) => boolean;
-    get: <T>(atomId: string) => Atom<T>;
+    get: <T>(atomId: string) => JokiAtom<T>;
     remove: <T>(atomId: string) => void;
     has: (atomId: string) => boolean;
 }
@@ -53,8 +53,8 @@ export default function atomEngine(): AtomEngine {
         });
     }
 
-    function createAtomFromInteral<T>(atomInt: AtomInternal<T>): Atom<T> {
-        const atom: Atom<T> = {
+    function createAtomFromInteral<T>(atomInt: AtomInternal<T>): JokiAtom<T> {
+        const atom: JokiAtom<T> = {
             id: atomInt.id,
             subscribe: (fn: (value: T) => void, once=false) => {
                 return subscribeToAtom(atomInt, fn, once);
@@ -83,7 +83,7 @@ export default function atomEngine(): AtomEngine {
         return true;
     }
 
-    function get<T>(atomId: string): Atom<T> | undefined {
+    function get<T>(atomId: string): JokiAtom<T> | undefined {
         const atomInt: AtomInternal<T> = atoms.get(atomId);
         if (!atomInt) {
             return undefined;
