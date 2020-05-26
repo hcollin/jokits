@@ -496,7 +496,10 @@
                 atom.set(value);
             }
         }
-        function getAtom(atomId) {
+        function getAtom(atomId, defaultValue) {
+            if (!ATOMS.has(atomId) && defaultValue) {
+                ATOMS.create(atomId, defaultValue);
+            }
             return ATOMS.get(atomId);
         }
         // STATE MACHINE FUNCTIONS

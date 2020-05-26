@@ -176,6 +176,7 @@ export default function createJoki(options: JokiOptions): JokiInstance {
     function getAtom<T>(atomId: string, defaultValue?: T): JokiAtom<T> | undefined {
         if(!ATOMS.has(atomId) && defaultValue) {
             ATOMS.create(atomId, defaultValue);
+            _log("DEBUG", `NewAtom ${atomId}`);
         }
         return ATOMS.get(atomId);
     }
