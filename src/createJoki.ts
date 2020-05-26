@@ -60,8 +60,10 @@ export interface JokiServiceApi {
 }
 
 export interface JokiInternalApi {
-    get: <T>(atomId: string) => JokiAtom<T>; // Get Atom
-    set: <T>(atomId: string, value: T) => void; // Create Atom and/or Set value for atom
+    getAtom: <T>(atomId: string) => JokiAtom<T>; // Get Atom
+    setAtom: <T>(atomId: string, value: T) => void; // Create Atom and/or Set value for atom
+    hasAtom: (atomId: string) => boolean;
+    serviceIds: string[];
     trigger: (event: JokiEvent) => void|(Promise<undefined>);
     getState: () => JokiState;
     log: (level: "DEBUG"|"WARN"|"ERROR", msg: string, additional?: any) => void;
@@ -181,6 +183,9 @@ export default function createJoki(options: JokiOptions): JokiInstance {
         return ATOMS.get(atomId);
     }
 
+    function hasAtom(atomId): boolean {
+        return ATOMS.has(atomId)
+    }
     // STATE MACHINE FUNCTIONS
 
     function statusInit(states: JokiMachineState[]) {
@@ -217,8 +222,10 @@ export default function createJoki(options: JokiOptions): JokiInstance {
 
     function internalApi(): JokiInternalApi {
         return {
-            get: getAtom,
-            set: setAtom,
+            getAtom: getAtom,
+            setAtom: setAtom,
+            hasAtom: hasAtom,
+            serviceIds: SERVICES.list(),
             trigger,
             getState: getStatus,
             log: _log,
