@@ -173,7 +173,10 @@ export default function createJoki(options: JokiOptions): JokiInstance {
         }
     }
 
-    function getAtom<T>(atomId: string): JokiAtom<T> | undefined {
+    function getAtom<T>(atomId: string, defaultValue?: T): JokiAtom<T> | undefined {
+        if(!ATOMS.has(atomId) && defaultValue) {
+            ATOMS.create(atomId, defaultValue);
+        }
         return ATOMS.get(atomId);
     }
 
