@@ -1,6 +1,6 @@
 import { JokiEvent } from "./models/JokiInterfaces";
 import { JokiInterceptor } from "./engineParts/interceptorEngine";
-import { JokiSubscriber } from "./engineParts/subscriberEngine";
+import { JokiSubscriber, JokiSubscriberOnce } from "./engineParts/subscriberEngine";
 import { JokiAtom } from "./engineParts/atomEngine";
 import { JokiServiceFactory } from "./engineParts/serviceEngine";
 import { JokiMachineState, JokiState } from "./engineParts/stateEngine";
@@ -9,13 +9,13 @@ export interface JokiOptions {
 export interface JokiInstance {
     trigger: (event: JokiEvent) => void | Promise<undefined>;
     on: (listener: JokiSubscriber) => () => void;
-    once: () => void;
+    once: (listener: JokiSubscriberOnce) => void;
     ask: (event: JokiEvent) => Promise<Map<string, any>>;
     service: ServiceApi;
     interceptor: InterceptorApi;
     atom: AtomApi;
     state: StateMachineApi;
-    config: (key: string, value: string) => void;
+    config: (key?: string, value?: string) => any;
 }
 export interface JokiConfigs {
     logger: string;
@@ -45,9 +45,11 @@ export interface JokiServiceApi {
     updated: (state: any) => void;
 }
 export interface JokiInternalApi {
-    get: <T>(atomId: string) => JokiAtom<T>;
-    set: <T>(atomId: string, value: T) => void;
-    trigger: (event: JokiEvent) => void | (Promise<undefined>);
+    getAtom: <T>(atomId: string) => JokiAtom<T>;
+    setAtom: <T>(atomId: string, value: T) => void;
+    hasAtom: (atomId: string) => boolean;
+    serviceIds: string[];
+    trigger: (event: JokiEvent) => void | Promise<undefined>;
     getState: () => JokiState;
     log: (level: "DEBUG" | "WARN" | "ERROR", msg: string, additional?: any) => void;
 }

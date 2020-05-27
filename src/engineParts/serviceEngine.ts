@@ -76,9 +76,8 @@ export default function serviceEngine(): ServiceEngine {
     }
 
     function list(): string[] {
-        const serviceArr = Array.from(services);
-        console.log(serviceArr);
-        return [];
+        const serviceArr = Array.from(services.keys());
+        return serviceArr;
     }
 
     function has(id: string): boolean {

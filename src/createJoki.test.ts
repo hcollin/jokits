@@ -41,6 +41,37 @@ describe("createJoki", () => {
         expect.assertions(2);
     });
 
+    it("Once executed subsription", () => {
+        const joki = createJoki({});
+
+        const called = jest.fn();
+
+        joki.once({
+            action: "runOnce",
+            fn: (ev: JokiEvent) => {
+                called();
+                return ev.data === "Foo";
+            },
+        });
+
+        joki.trigger({
+            action: "runOnce",
+            data: "Bar",
+        });
+
+        joki.trigger({
+            action: "runOnce",
+            data: "Foo",
+        });
+
+        joki.trigger({
+            action: "runOnce",
+            data: "Foo",
+        });
+
+        expect(called).toBeCalledTimes(2);
+    });
+
     it("atomEngine", () => {
         const joki = createJoki({});
 
@@ -74,7 +105,6 @@ describe("createJoki", () => {
         const call1 = jest.fn();
         const call2 = jest.fn();
 
-
         function testService(id: string, api: JokiServiceApi): JokiService<string> {
             let value: string = "alpha";
 
@@ -93,7 +123,7 @@ describe("createJoki", () => {
 
             return {
                 eventHandler,
-                getState
+                getState,
             };
         }
 
@@ -156,10 +186,10 @@ describe("createJoki", () => {
         joki.trigger({
             to: "anotherService",
             action: "data",
-            data: "Neo"
+            data: "Neo",
         });
 
-        const res:Map<string, any> = await joki.ask({
+        const res: Map<string, any> = await joki.ask({
             action: "getName",
         });
 
@@ -167,17 +197,15 @@ describe("createJoki", () => {
         expect(res.get("testService")).toBe("Mr. Foo Anderson");
         expect(res.get("anotherService")).toBe("Mr. Neo Anderson");
 
-
-        const res2:Map<string, any> = await joki.ask({
+        const res2: Map<string, any> = await joki.ask({
             to: "atomizer",
         });
 
         expect(res2.size).toBe(1);
         expect(res2.get("atomizer")).toBe("I am atom!");
     });
-    
-    it("ServiceApi", () => {
 
+    it("ServiceApi", () => {
         const joki = createJoki({});
 
         function testService(id: string, api: JokiServiceApi): JokiService<string> {
@@ -197,7 +225,7 @@ describe("createJoki", () => {
 
         joki.service.add({
             serviceId: "testService",
-            service: testService
+            service: testService,
         });
 
         joki.on({
@@ -206,17 +234,16 @@ describe("createJoki", () => {
                 expect(e.from).toBe("testService");
                 expect(e.action).toBe("ServiceStateUpdated");
                 expect(e.data).toBe("Bar");
-            }
+            },
         });
 
         joki.trigger({
             to: "testService",
             action: "data",
-            data: "Bar"
+            data: "Bar",
         });
 
         expect.assertions(3);
-
     });
 
     it("StateEngine", () => {

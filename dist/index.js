@@ -132,13 +132,22 @@
         var subscriptions = [];
         function add(subscriber) {
             var id = idGen("sub");
-            var sub = __assign(__assign({}, subscriber), { id: id });
+            var sub = __assign(__assign({}, subscriber), { id: id, once: false });
             subscriptions.push(sub);
             return function () {
                 subscriptions = subscriptions.filter(function (s) { return s.id !== id; });
             };
         }
+        function addOnce(subscriber) {
+            var id = idGen("sub");
+            var sub = __assign(__assign({}, subscriber), { id: id, once: true });
+            subscriptions.push(sub);
+            // return () => {
+            //     subscriptions = subscriptions.filter((s: JokiSubscriptionInternal) => s.id !== id);
+            // };
+        }
         function run(event) {
+            var subsDone = [];
             subscriptions.forEach(function (sub) {
                 var execute = false;
                 if (sub.name && event.to) {
@@ -169,12 +178,24 @@
                 if (sub.name === undefined && sub.from === undefined && sub.action === undefined)
                     execute = true;
                 if (execute) {
-                    sub.fn(event);
+                    if (sub.once) {
+                        var done = sub.fn(event);
+                        if (done === true) {
+                            subsDone.push(sub.id);
+                        }
+                    }
+                    else {
+                        sub.fn(event);
+                    }
                 }
             });
+            if (subsDone.length > 0) {
+                subscriptions = subscriptions.filter(function (s) { return !subsDone.includes(s.id); });
+            }
         }
         return {
             add: add,
+            addOnce: addOnce,
             run: run
         };
     }
@@ -465,7 +486,9 @@
         function on(subscriber) {
             return SUBSCRIBER.add(subscriber);
         }
-        function once() { }
+        function once(subscriber) {
+            SUBSCRIBER.addOnce(subscriber);
+        }
         // SERVICE FUNCTIONS
         function addService(service) {
             _log("DEBUG", "New Service", service);
@@ -499,8 +522,12 @@
         function getAtom(atomId, defaultValue) {
             if (!ATOMS.has(atomId) && defaultValue) {
                 ATOMS.create(atomId, defaultValue);
+                _log("DEBUG", "NewAtom " + atomId);
             }
             return ATOMS.get(atomId);
+        }
+        function hasAtom(atomId) {
+            return ATOMS.has(atomId);
         }
         // STATE MACHINE FUNCTIONS
         function statusInit(states) {
@@ -530,16 +557,29 @@
         }
         function internalApi() {
             return {
-                get: getAtom,
-                set: setAtom,
+                getAtom: getAtom,
+                setAtom: setAtom,
+                hasAtom: hasAtom,
+                serviceIds: SERVICES.list(),
                 trigger: trigger,
                 getState: getStatus,
                 log: _log
             };
         }
         function config(key, value) {
+            if (!key) {
+                return __assign({}, configs);
+            }
+            if (!value) {
+                if (configs[key]) {
+                    return configs[key];
+                }
+            }
             if (configs[key]) {
                 configs[key] = value;
+            }
+            else {
+                console.warn("jokits: Unknown config key " + key + " value " + value);
             }
         }
         function _log(level, msg, additional) {

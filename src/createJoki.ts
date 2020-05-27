@@ -1,6 +1,6 @@
 import { JokiEvent } from "./models/JokiInterfaces";
 import interceptorEngine, { JokiInterceptor } from "./engineParts/interceptorEngine";
-import subscriptionEngine, { JokiSubscriber } from "./engineParts/subscriberEngine";
+import subscriptionEngine, { JokiSubscriber, JokiSubscriberOnce } from "./engineParts/subscriberEngine";
 import atomEngine, { JokiAtom } from "./engineParts/atomEngine";
 import serviceEngine, { JokiServiceFactory } from "./engineParts/serviceEngine";
 import stateEngine, { JokiMachineState, JokiState } from "./engineParts/stateEngine";
@@ -9,17 +9,17 @@ export interface JokiOptions {}
 
 export interface JokiInstance {
     // Main functions
-    trigger: (event: JokiEvent) => void|Promise<undefined>; // Fire and forget an event
+    trigger: (event: JokiEvent) => void | Promise<undefined>; // Fire and forget an event
     on: (listener: JokiSubscriber) => () => void;
-    once: () => void;
+    once: (listener: JokiSubscriberOnce) => void;
     ask: (event: JokiEvent) => Promise<Map<string, any>>;
-    
+
     service: ServiceApi;
     interceptor: InterceptorApi;
     atom: AtomApi;
     state: StateMachineApi;
-    
-    config: (key: string, value: string) => void;
+
+    config: (key?: string, value?: string) => any;
 }
 
 export interface JokiConfigs {
@@ -33,14 +33,14 @@ export interface ServiceApi {
 }
 
 export interface InterceptorApi {
-    add:(interceptor: JokiInterceptor) => string;
+    add: (interceptor: JokiInterceptor) => string;
     remove: (id: string) => void;
 }
 
 export interface StateMachineApi {
     init: (statuses: JokiMachineState[]) => void;
     get: () => JokiState;
-    set:(status: string) => void;
+    set: (status: string) => void;
     listen: (fn: (state: JokiState) => void) => () => void;
 }
 
@@ -55,8 +55,6 @@ export interface JokiServiceApi {
     // ask: () => void;        // Ask for the state of another service
     api: JokiInternalApi;
     updated: (state: any) => void;
-
-
 }
 
 export interface JokiInternalApi {
@@ -64,16 +62,14 @@ export interface JokiInternalApi {
     setAtom: <T>(atomId: string, value: T) => void; // Create Atom and/or Set value for atom
     hasAtom: (atomId: string) => boolean;
     serviceIds: string[];
-    trigger: (event: JokiEvent) => void|(Promise<undefined>);
+    trigger: (event: JokiEvent) => void | Promise<undefined>;
     getState: () => JokiState;
-    log: (level: "DEBUG"|"WARN"|"ERROR", msg: string, additional?: any) => void;
+    log: (level: "DEBUG" | "WARN" | "ERROR", msg: string, additional?: any) => void;
 }
 
 export default function createJoki(options: JokiOptions): JokiInstance {
-
-
     const configs: JokiConfigs = {
-        logger: "OFF"
+        logger: "OFF",
     };
 
     const INTERCEPTOR = interceptorEngine();
@@ -84,16 +80,14 @@ export default function createJoki(options: JokiOptions): JokiInstance {
 
     // MAIN FUNCTIONS
 
-    function trigger(event: JokiEvent): void|Promise<undefined> {
+    function trigger(event: JokiEvent): void | Promise<undefined> {
         _log("DEBUG", `TriggerEvent`, event);
-        if(event.async === true)  {
+        if (event.async === true) {
             return new Promise(async (resolve, reject) => {
                 const ev: JokiEvent = await INTERCEPTOR.run(Object.freeze(event), internalApi());
                 await SUBSCRIBER.run(ev);
                 await SERVICES.run(ev);
                 resolve();
-                
-            
             });
         } else {
             const ev: JokiEvent = INTERCEPTOR.run(Object.freeze(event), internalApi());
@@ -103,24 +97,21 @@ export default function createJoki(options: JokiOptions): JokiInstance {
     }
 
     function ask(event: JokiEvent): Promise<Map<string, any>> {
-
-        return new Promise( async (resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
             const ev: JokiEvent = await INTERCEPTOR.run(Object.freeze(event), internalApi());
             const res: Map<string, any> = await SERVICES.run(ev);
-            if(ev.to !== undefined) {
+            if (ev.to !== undefined) {
                 const atom = ATOMS.get(ev.to);
-                if(atom) {
-                    if(!res.has(atom.id)) {
+                if (atom) {
+                    if (!res.has(atom.id)) {
                         res.set(atom.id, atom.get());
                     }
                 }
-
             }
             resolve(res);
         });
     }
 
-    
     // INTERCEPTOR FUNCTIONS
 
     function addInterceptor(interceptor: JokiInterceptor): string {
@@ -138,7 +129,9 @@ export default function createJoki(options: JokiOptions): JokiInstance {
         return SUBSCRIBER.add(subscriber);
     }
 
-    function once() {}
+    function once(subscriber: JokiSubscriberOnce) {
+        SUBSCRIBER.addOnce(subscriber);
+    }
 
     // SERVICE FUNCTIONS
 
@@ -176,7 +169,7 @@ export default function createJoki(options: JokiOptions): JokiInstance {
     }
 
     function getAtom<T>(atomId: string, defaultValue?: T): JokiAtom<T> | undefined {
-        if(!ATOMS.has(atomId) && defaultValue) {
+        if (!ATOMS.has(atomId) && defaultValue) {
             ATOMS.create(atomId, defaultValue);
             _log("DEBUG", `NewAtom ${atomId}`);
         }
@@ -184,7 +177,7 @@ export default function createJoki(options: JokiOptions): JokiInstance {
     }
 
     function hasAtom(atomId): boolean {
-        return ATOMS.has(atomId)
+        return ATOMS.has(atomId);
     }
     // STATE MACHINE FUNCTIONS
 
@@ -213,10 +206,9 @@ export default function createJoki(options: JokiOptions): JokiInstance {
                 trigger({
                     from: serviceId,
                     action: "ServiceStateUpdated",
-                    data: state
+                    data: state,
                 });
-            }
-
+            },
         };
     }
 
@@ -232,15 +224,25 @@ export default function createJoki(options: JokiOptions): JokiInstance {
         };
     }
 
-    function config(key: keyof JokiConfigs, value: string) {
-        if(configs[key]) {
+    function config(key?: keyof JokiConfigs, value?: string): any {
+        if (!key) {
+            return { ...configs };
+        }
+        if (!value) {
+            if (configs[key]) {
+                return configs[key];
+            }
+        }
+        if (configs[key]) {
             configs[key] = value;
+        } else {
+            console.warn(`jokits: Unknown config key ${key} value ${value}`);
         }
     }
 
-    function _log(level: "DEBUG"|"WARN"|"ERROR", msg: string, additional?: any) {
-        if(configs.logger ==="ON") {
-            if(additional !== undefined) {
+    function _log(level: "DEBUG" | "WARN" | "ERROR", msg: string, additional?: any) {
+        if (configs.logger === "ON") {
+            if (additional !== undefined) {
                 console.log(`JOKITS:${level}: ${msg}`, additional);
             } else {
                 console.log(`JOKITS:${level}: ${msg}`);
@@ -271,13 +273,13 @@ export default function createJoki(options: JokiOptions): JokiInstance {
             has: ATOMS.has,
         },
 
-        state:{
+        state: {
             get: getStatus,
             set: changeStatus,
             init: statusInit,
             listen: listenMachine,
         },
 
-        config
+        config,
     };
 }
