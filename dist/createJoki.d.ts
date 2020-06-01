@@ -43,6 +43,7 @@ export interface AtomApi {
 export interface JokiServiceApi {
     api: JokiInternalApi;
     updated: (state: any) => void;
+    initialized: (state: any) => void;
 }
 export interface JokiInternalApi {
     getAtom: <T>(atomId: string) => JokiAtom<T>;

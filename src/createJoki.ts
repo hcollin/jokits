@@ -55,6 +55,7 @@ export interface JokiServiceApi {
     // ask: () => void;        // Ask for the state of another service
     api: JokiInternalApi;
     updated: (state: any) => void;
+    initialized: (state: any) => void;
 }
 
 export interface JokiInternalApi {
@@ -206,6 +207,13 @@ export default function createJoki(options: JokiOptions): JokiInstance {
                 trigger({
                     from: serviceId,
                     action: "ServiceStateUpdated",
+                    data: state,
+                });
+            },
+            initialized: (state: any) => {
+                trigger({
+                    from: serviceId,
+                    action: "ServiceInitialized",
                     data: state,
                 });
             },

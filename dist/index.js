@@ -309,9 +309,8 @@
             }
         }
         function list() {
-            var serviceArr = Array.from(services);
-            console.log(serviceArr);
-            return [];
+            var serviceArr = Array.from(services.keys());
+            return serviceArr;
         }
         function has(id) {
             return services.has(id);
@@ -550,6 +549,13 @@
                     trigger({
                         from: serviceId,
                         action: "ServiceStateUpdated",
+                        data: state
+                    });
+                },
+                initialized: function (state) {
+                    trigger({
+                        from: serviceId,
+                        action: "ServiceInitialized",
                         data: state
                     });
                 }
