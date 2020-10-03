@@ -569,7 +569,8 @@
                 serviceIds: SERVICES.list(),
                 trigger: trigger,
                 getState: getStatus,
-                log: _log
+                log: _log,
+                getServiceState: getServiceState
             };
         }
         function config(key, value) {

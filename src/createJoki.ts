@@ -66,6 +66,7 @@ export interface JokiInternalApi {
     trigger: (event: JokiEvent) => void | Promise<undefined>;
     getState: () => JokiState;
     log: (level: "DEBUG" | "WARN" | "ERROR", msg: string, additional?: any) => void;
+    getServiceState: <T>(serviceId: string) => T|undefined;
 }
 
 export default function createJoki(options: JokiOptions): JokiInstance {
@@ -229,6 +230,7 @@ export default function createJoki(options: JokiOptions): JokiInstance {
             trigger,
             getState: getStatus,
             log: _log,
+            getServiceState: getServiceState
         };
     }
 
