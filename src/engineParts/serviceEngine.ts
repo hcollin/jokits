@@ -5,6 +5,7 @@ import { JokiEvent } from "@App/models/JokiInterfaces";
 export interface ServiceEngine {
     add: <T>(serviceFactory: JokiServiceFactory<T>, api: JokiServiceApi) => void;
     run: (event: JokiEvent) => any;
+    asyncRun: (event: JokiEvent) => Promise<any>;
     remove: (serviceId: string) => void;
     list: () => string[];
     has: (serviceId: string) => boolean;
@@ -48,6 +49,12 @@ export default function serviceEngine(): ServiceEngine {
 
         services.set(serviceFactory.serviceId, cont);
         
+    }
+
+    async function asyncRun(event: JokiEvent): Promise<any> {
+        const res = run(event);
+        return await res;
+
     }
 
     function run(event: JokiEvent): any {
@@ -95,6 +102,7 @@ export default function serviceEngine(): ServiceEngine {
     return {
         add,
         run,
+        asyncRun,
         remove,
         list,
         has,

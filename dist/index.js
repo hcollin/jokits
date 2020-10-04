@@ -288,6 +288,19 @@
             };
             services.set(serviceFactory.serviceId, cont);
         }
+        function asyncRun(event) {
+            return __awaiter(this, void 0, void 0, function () {
+                var res;
+                return __generator(this, function (_a) {
+                    switch (_a.label) {
+                        case 0:
+                            res = run(event);
+                            return [4 /*yield*/, res];
+                        case 1: return [2 /*return*/, _a.sent()];
+                    }
+                });
+            });
+        }
         function run(event) {
             // Targeted event!
             if (services.has(event.to)) {
@@ -325,6 +338,7 @@
         return {
             add: add,
             run: run,
+            asyncRun: asyncRun,
             remove: remove,
             list: list,
             has: has,
@@ -432,7 +446,7 @@
                                 return [4 /*yield*/, SUBSCRIBER.run(ev)];
                             case 2:
                                 _a.sent();
-                                return [4 /*yield*/, SERVICES.run(ev)];
+                                return [4 /*yield*/, SERVICES.asyncRun(ev)];
                             case 3:
                                 _a.sent();
                                 resolve();

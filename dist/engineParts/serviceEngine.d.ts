@@ -3,6 +3,7 @@ import { JokiEvent } from "@App/models/JokiInterfaces";
 export interface ServiceEngine {
     add: <T>(serviceFactory: JokiServiceFactory<T>, api: JokiServiceApi) => void;
     run: (event: JokiEvent) => any;
+    asyncRun: (event: JokiEvent) => Promise<any>;
     remove: (serviceId: string) => void;
     list: () => string[];
     has: (serviceId: string) => boolean;

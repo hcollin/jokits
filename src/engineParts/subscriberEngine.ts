@@ -44,7 +44,7 @@ export default function subscriptionEngine() {
         //     subscriptions = subscriptions.filter((s: JokiSubscriptionInternal) => s.id !== id);
         // };
     }
-
+    
     function run(event: JokiEvent) {
         const subsDone: string[] = [];
         subscriptions.forEach((sub: JokiSubscriptionInternal) => {

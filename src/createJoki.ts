@@ -88,7 +88,7 @@ export default function createJoki(options: JokiOptions): JokiInstance {
             return new Promise(async (resolve, reject) => {
                 const ev: JokiEvent = await INTERCEPTOR.run(Object.freeze(event), internalApi());
                 await SUBSCRIBER.run(ev);
-                await SERVICES.run(ev);
+                await SERVICES.asyncRun(ev);
                 resolve();
             });
         } else {
