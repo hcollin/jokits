@@ -10,7 +10,7 @@ export interface ServiceEngine {
     getServiceState: (serviceId: string) => any;
 }
 export interface JokiService<T> {
-    eventHandler: (event: JokiEvent) => undefined | T | T[] | Map<string, T> | (Promise<T | T[] | Map<string, T> | undefined>) | void;
+    eventHandler: (event: JokiEvent) => undefined | T | T[] | Map<string, T> | (Promise<T | T[] | Map<string, T> | undefined>) | void | Promise<void>;
     getState: () => T | T[] | Map<string, T> | undefined;
 }
 export interface ServiceCreator<T> {
