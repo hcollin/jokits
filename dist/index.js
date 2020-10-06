@@ -424,7 +424,8 @@
 
     function createJoki(options) {
         var configs = {
-            logger: "OFF"
+            logger: "OFF",
+            triggerEventOnStateChange: "OFF"
         };
         var INTERCEPTOR = interceptorEngine();
         var SUBSCRIBER = subscriptionEngine();
@@ -550,7 +551,18 @@
             return STATEMACHINE.get(internalApi());
         }
         function changeStatus(newStatus) {
+            var oldStatus = getStatus();
             STATEMACHINE.change(newStatus, internalApi());
+            if (configs.triggerEventOnStateChange === "ON") {
+                var event_1 = {
+                    from: "JOKI",
+                    action: "STATUSUPDATE",
+                    data: {
+                        from: oldStatus.state,
+                        to: newStatus
+                    }
+                };
+            }
         }
         function listenMachine(fn) {
             return STATEMACHINE.listen(fn);
@@ -572,6 +584,15 @@
                         action: "ServiceInitialized",
                         data: state
                     });
+                },
+                eventIs: {
+                    statusChange: function (event) { return event.from === "JOKI" && event.action === "STATUSUPDATE"; },
+                    updateFromService: function (event, serviceId) {
+                        return event.from === serviceId && event.action === "ServiceStateUpdated";
+                    },
+                    initializationFromService: function (event, serviceId) {
+                        return event.from === serviceId && event.action === "ServiceInitialized";
+                    }
                 }
             };
         }

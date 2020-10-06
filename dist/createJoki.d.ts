@@ -19,6 +19,7 @@ export interface JokiInstance {
 }
 export interface JokiConfigs {
     logger: string;
+    triggerEventOnStateChange: string;
 }
 export interface ServiceApi {
     add: <T>(service: JokiServiceFactory<T>) => void;
@@ -44,6 +45,12 @@ export interface JokiServiceApi {
     api: JokiInternalApi;
     updated: (state: any) => void;
     initialized: (state: any) => void;
+    eventIs: JokiEventDefaultEventListeners;
+}
+export interface JokiEventDefaultEventListeners {
+    statusChange: (event: JokiEvent) => boolean;
+    updateFromService: (event: JokiEvent, serviceId: string) => boolean;
+    initializationFromService: (event: JokiEvent, serviceId: string) => boolean;
 }
 export interface JokiInternalApi {
     getAtom: <T>(atomId: string) => JokiAtom<T>;
