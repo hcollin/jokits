@@ -583,6 +583,7 @@
                 serviceIds: SERVICES.list(),
                 trigger: trigger,
                 getState: getStatus,
+                changeState: changeStatus,
                 log: _log,
                 getServiceState: getServiceState
             };

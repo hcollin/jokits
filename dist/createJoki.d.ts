@@ -52,6 +52,7 @@ export interface JokiInternalApi {
     serviceIds: string[];
     trigger: (event: JokiEvent) => void | Promise<undefined>;
     getState: () => JokiState;
+    changeState: (value: string) => void;
     log: (level: "DEBUG" | "WARN" | "ERROR", msg: string, additional?: any) => void;
     getServiceState: <T>(serviceId: string) => T | undefined;
 }
