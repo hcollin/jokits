@@ -24,6 +24,7 @@ export interface JokiInstance {
 
 export interface JokiConfigs {
     logger: string; // OFF|ON
+    triggerEventOnStateChange: string; // OFF|ON
 }
 
 export interface ServiceApi {
@@ -67,12 +68,13 @@ export interface JokiInternalApi {
     getState: () => JokiState;
     changeState: (value: string) => void;
     log: (level: "DEBUG" | "WARN" | "ERROR", msg: string, additional?: any) => void;
-    getServiceState: <T>(serviceId: string) => T|undefined;
+    getServiceState: <T>(serviceId: string) => T | undefined;
 }
 
 export default function createJoki(options: JokiOptions): JokiInstance {
     const configs: JokiConfigs = {
         logger: "OFF",
+        triggerEventOnStateChange: "OFF",
     };
 
     const INTERCEPTOR = interceptorEngine();
@@ -193,7 +195,18 @@ export default function createJoki(options: JokiOptions): JokiInstance {
     }
 
     function changeStatus(newStatus: string): void {
+        const oldStatus = getStatus();
         STATEMACHINE.change(newStatus, internalApi());
+        if (configs.triggerEventOnStateChange === "ON") {
+            const event: JokiEvent = {
+                from: "JOKI",
+                action: "STATUSUPDATE",
+                data: {
+                    from: oldStatus.state,
+                    to: newStatus,
+                },
+            };
+        }
     }
 
     function listenMachine(fn: (value: JokiState) => void): () => void {
@@ -232,7 +245,7 @@ export default function createJoki(options: JokiOptions): JokiInstance {
             getState: getStatus,
             changeState: changeStatus,
             log: _log,
-            getServiceState: getServiceState
+            getServiceState: getServiceState,
         };
     }
 
