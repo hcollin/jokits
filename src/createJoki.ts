@@ -57,6 +57,13 @@ export interface JokiServiceApi {
     api: JokiInternalApi;
     updated: (state: any) => void;
     initialized: (state: any) => void;
+    eventIs: JokiEventDefaultEventListeners;
+}
+
+export interface JokiEventDefaultEventListeners {
+    statusChange: (event: JokiEvent) => boolean;
+    updateFromService: (event: JokiEvent, serviceId: string) => boolean;
+    initializationFromService: (event: JokiEvent, serviceId: string) => boolean;
 }
 
 export interface JokiInternalApi {
@@ -231,6 +238,13 @@ export default function createJoki(options: JokiOptions): JokiInstance {
                     action: "ServiceInitialized",
                     data: state,
                 });
+            },
+            eventIs: {
+                statusChange: (event: JokiEvent): boolean => event.from === "JOKI" && event.action === "STATUSUPDATE",
+                updateFromService: (event: JokiEvent, serviceId: string): boolean =>
+                    event.from === serviceId && event.action === "ServiceStateUpdated",
+                initializationFromService: (event: JokiEvent, serviceId: string): boolean =>
+                    event.from === serviceId && event.action === "ServiceInitialized",
             },
         };
     }
