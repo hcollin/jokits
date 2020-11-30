@@ -8,6 +8,15 @@ export interface ServiceEngine {
     list: () => string[];
     has: (serviceId: string) => boolean;
     getServiceState: (serviceId: string) => any;
+    getServiceStatus: (serviceId: string) => JokiServiceStatus;
+    setServiceStatus: (serviceId: string, status: JokiServiceStatus) => void;
+}
+export declare enum JokiServiceStatus {
+    UNKNOWN = "Unknown",
+    CLOSED = "Closed",
+    READY = "Ready",
+    PROCESSING = "Processing",
+    ERROR = "Error"
 }
 export interface JokiService<T> {
     eventHandler: (event: JokiEvent) => undefined | T | T[] | Map<string, T> | (Promise<T | T[] | Map<string, T> | undefined>) | void | Promise<void>;
@@ -19,6 +28,7 @@ export interface ServiceCreator<T> {
 export interface JokiServiceFactory<T> {
     serviceId: string;
     service: ServiceCreator<T>;
+    initStatus?: JokiServiceStatus;
     options?: any;
 }
 export default function serviceEngine(): ServiceEngine;

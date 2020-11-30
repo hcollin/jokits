@@ -2,7 +2,7 @@ import { JokiEvent } from "./models/JokiInterfaces";
 import { JokiInterceptor } from "./engineParts/interceptorEngine";
 import { JokiSubscriber, JokiSubscriberOnce } from "./engineParts/subscriberEngine";
 import { JokiAtom } from "./engineParts/atomEngine";
-import { JokiServiceFactory } from "./engineParts/serviceEngine";
+import { JokiServiceFactory, JokiServiceStatus } from "./engineParts/serviceEngine";
 import { JokiMachineState, JokiState } from "./engineParts/stateEngine";
 export interface JokiOptions {
 }
@@ -21,10 +21,16 @@ export interface JokiConfigs {
     logger: string;
     triggerEventOnStateChange: string;
 }
+export declare enum JokiServiceEvent {
+    StateUpdate = "ServiceStateUpdated",
+    StatusUpdate = "ServiceStatusUpdated",
+    ServiceInitialized = "ServiceInitialized"
+}
 export interface ServiceApi {
     add: <T>(service: JokiServiceFactory<T>) => void;
     remove: (serviceId: string) => void;
     getState: (serviceId: string) => any;
+    getStatus: (serviceId: string) => JokiServiceStatus;
 }
 export interface InterceptorApi {
     add: (interceptor: JokiInterceptor) => string;
@@ -44,6 +50,7 @@ export interface AtomApi {
 export interface JokiServiceApi {
     api: JokiInternalApi;
     updated: (state: any) => void;
+    changeStatus: (newStatus: JokiServiceStatus) => void;
     initialized: (state: any) => void;
     eventIs: JokiEventDefaultEventListeners;
 }

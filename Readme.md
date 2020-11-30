@@ -13,5 +13,14 @@ This box includes the following parts:
 * Atoms
   * "Global" variables that can be subsribed to.
 
+## Version history
+
+### 0.5.0
+
+Introduces the status to Services. This is an internal status enum that can be used to for example async processing
+
+* Service Status functionality
+* 
+
 
 Use with jokits-react for built-in tools for state management.

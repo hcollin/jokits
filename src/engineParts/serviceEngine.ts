@@ -10,12 +10,23 @@ export interface ServiceEngine {
     list: () => string[];
     has: (serviceId: string) => boolean;
     getServiceState: (serviceId: string) => any;
+    getServiceStatus: (serviceId: string) => JokiServiceStatus;
+    setServiceStatus: (serviceId: string, status: JokiServiceStatus) => void;
 }
 
 interface ServiceContainer {
     id: string;
     service: JokiService<any>;
+    status: JokiServiceStatus;
 }
+
+export enum JokiServiceStatus {
+    UNKNOWN = "Unknown",
+    CLOSED = "Closed",
+    READY = "Ready",
+    PROCESSING = "Processing",
+    ERROR = "Error",
+};
 
 export interface JokiService<T> {
     eventHandler: (event: JokiEvent) => undefined|T|T[]|Map<string, T>|(Promise<T|T[]|Map<string, T>|undefined>)|void|Promise<void>;
@@ -29,6 +40,7 @@ export interface ServiceCreator<T> {
 export  interface JokiServiceFactory<T> {
     serviceId: string;
     service: ServiceCreator<T>;
+    initStatus?: JokiServiceStatus;
     options?: any
 }
 
@@ -42,9 +54,11 @@ export default function serviceEngine(): ServiceEngine {
             throw new Error(`Service with id ${serviceFactory.serviceId} already exists`);
         }
         const service = serviceFactory.service(serviceFactory.serviceId, api, serviceFactory.options);
+        
         const cont: ServiceContainer = {
             id: serviceFactory.serviceId,
-            service: service
+            service: service,
+            status: serviceFactory.initStatus || JokiServiceStatus.UNKNOWN,
         };
 
         services.set(serviceFactory.serviceId, cont);
@@ -99,6 +113,24 @@ export default function serviceEngine(): ServiceEngine {
         return undefined;
     }
 
+    function getServiceStatus(serviceId: string): JokiServiceStatus {
+        const service = services.get(serviceId);
+        if(service) {
+            return service.status;
+        }
+        return JokiServiceStatus.UNKNOWN;
+    }
+
+    function setServiceStatus(serviceId: string, newStatus: JokiServiceStatus) {
+        const service = services.get(serviceId);
+        if(service) {
+            service.status = newStatus;
+            services.set(serviceId, service);
+        } else {
+            throw new Error(`Cannot set status ${newStatus} for an unknown service ${serviceId}`);
+        }
+    }
+
     return {
         add,
         run,
@@ -107,5 +139,7 @@ export default function serviceEngine(): ServiceEngine {
         list,
         has,
         getServiceState,
+        getServiceStatus,
+        setServiceStatus,
     }
 }

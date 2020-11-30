@@ -275,6 +275,14 @@
         };
     }
 
+    var JokiServiceStatus;
+    (function (JokiServiceStatus) {
+        JokiServiceStatus["UNKNOWN"] = "Unknown";
+        JokiServiceStatus["CLOSED"] = "Closed";
+        JokiServiceStatus["READY"] = "Ready";
+        JokiServiceStatus["PROCESSING"] = "Processing";
+        JokiServiceStatus["ERROR"] = "Error";
+    })(JokiServiceStatus || (JokiServiceStatus = {}));
     function serviceEngine() {
         var services = new Map();
         function add(serviceFactory, api) {
@@ -284,7 +292,8 @@
             var service = serviceFactory.service(serviceFactory.serviceId, api, serviceFactory.options);
             var cont = {
                 id: serviceFactory.serviceId,
-                service: service
+                service: service,
+                status: serviceFactory.initStatus || JokiServiceStatus.UNKNOWN
             };
             services.set(serviceFactory.serviceId, cont);
         }
@@ -335,6 +344,23 @@
             }
             return undefined;
         }
+        function getServiceStatus(serviceId) {
+            var service = services.get(serviceId);
+            if (service) {
+                return service.status;
+            }
+            return JokiServiceStatus.UNKNOWN;
+        }
+        function setServiceStatus(serviceId, newStatus) {
+            var service = services.get(serviceId);
+            if (service) {
+                service.status = newStatus;
+                services.set(serviceId, service);
+            }
+            else {
+                throw new Error("Cannot set status " + newStatus + " for an unknown service " + serviceId);
+            }
+        }
         return {
             add: add,
             run: run,
@@ -342,7 +368,9 @@
             remove: remove,
             list: list,
             has: has,
-            getServiceState: getServiceState
+            getServiceState: getServiceState,
+            getServiceStatus: getServiceStatus,
+            setServiceStatus: setServiceStatus
         };
     }
 
@@ -422,6 +450,12 @@
         };
     }
 
+    var JokiServiceEvent;
+    (function (JokiServiceEvent) {
+        JokiServiceEvent["StateUpdate"] = "ServiceStateUpdated";
+        JokiServiceEvent["StatusUpdate"] = "ServiceStatusUpdated";
+        JokiServiceEvent["ServiceInitialized"] = "ServiceInitialized";
+    })(JokiServiceEvent || (JokiServiceEvent = {}));
     function createJoki(options) {
         var configs = {
             logger: "OFF",
@@ -522,6 +556,13 @@
             var eventPostProcessing = INTERCEPTOR.run(eventPreProcessing, internalApi());
             return eventPostProcessing.data;
         }
+        function getServiceStatus(serviceId) {
+            var status = SERVICES.getServiceStatus(serviceId);
+            return status;
+        }
+        function setServiceStatus(serviceId, status) {
+            SERVICES.setServiceStatus(serviceId, status);
+        }
         // ATOM FUNCTIONS
         function setAtom(atomId, value) {
             if (!ATOMS.has(atomId)) {
@@ -574,14 +615,22 @@
                 updated: function (state) {
                     trigger({
                         from: serviceId,
-                        action: "ServiceStateUpdated",
+                        action: JokiServiceEvent.StateUpdate,
                         data: state
+                    });
+                },
+                changeStatus: function (status) {
+                    setServiceStatus(serviceId, status);
+                    trigger({
+                        from: serviceId,
+                        action: JokiServiceEvent.StatusUpdate,
+                        data: status
                     });
                 },
                 initialized: function (state) {
                     trigger({
                         from: serviceId,
-                        action: "ServiceInitialized",
+                        action: JokiServiceEvent.ServiceInitialized,
                         data: state
                     });
                 },
@@ -643,7 +692,8 @@
             service: {
                 add: addService,
                 remove: removeService,
-                getState: getServiceState
+                getState: getServiceState,
+                getStatus: getServiceStatus
             },
             interceptor: {
                 add: addInterceptor,

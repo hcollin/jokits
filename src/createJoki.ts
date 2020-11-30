@@ -2,7 +2,7 @@ import { JokiEvent } from "./models/JokiInterfaces";
 import interceptorEngine, { JokiInterceptor } from "./engineParts/interceptorEngine";
 import subscriptionEngine, { JokiSubscriber, JokiSubscriberOnce } from "./engineParts/subscriberEngine";
 import atomEngine, { JokiAtom } from "./engineParts/atomEngine";
-import serviceEngine, { JokiServiceFactory } from "./engineParts/serviceEngine";
+import serviceEngine, { JokiServiceFactory, JokiServiceStatus } from "./engineParts/serviceEngine";
 import stateEngine, { JokiMachineState, JokiState } from "./engineParts/stateEngine";
 
 export interface JokiOptions {}
@@ -27,10 +27,18 @@ export interface JokiConfigs {
     triggerEventOnStateChange: string; // OFF|ON
 }
 
+
+export enum JokiServiceEvent {
+    StateUpdate = "ServiceStateUpdated",
+    StatusUpdate = "ServiceStatusUpdated",
+    ServiceInitialized = "ServiceInitialized"
+};
+
 export interface ServiceApi {
     add: <T>(service: JokiServiceFactory<T>) => void;
     remove: (serviceId: string) => void;
     getState: (serviceId: string) => any; // Get the current state of a service
+    getStatus: (serviceId: string) => JokiServiceStatus;
 }
 
 export interface InterceptorApi {
@@ -56,7 +64,9 @@ export interface JokiServiceApi {
     // ask: () => void;        // Ask for the state of another service
     api: JokiInternalApi;
     updated: (state: any) => void;
+    changeStatus: (newStatus: JokiServiceStatus) => void;
     initialized: (state: any) => void;
+    
     eventIs: JokiEventDefaultEventListeners;
 }
 
@@ -169,6 +179,15 @@ export default function createJoki(options: JokiOptions): JokiInstance {
         return eventPostProcessing.data;
     }
 
+    function getServiceStatus(serviceId: string): JokiServiceStatus {
+        const status = SERVICES.getServiceStatus(serviceId);
+        return status;
+    }
+
+    function setServiceStatus(serviceId: string, status: JokiServiceStatus) {
+        SERVICES.setServiceStatus(serviceId, status);
+    }
+
     // ATOM FUNCTIONS
     function setAtom<T>(atomId: string, value: T | undefined) {
         if (!ATOMS.has(atomId)) {
@@ -228,14 +247,22 @@ export default function createJoki(options: JokiOptions): JokiInstance {
             updated: (state: any) => {
                 trigger({
                     from: serviceId,
-                    action: "ServiceStateUpdated",
+                    action: JokiServiceEvent.StateUpdate,
                     data: state,
+                });
+            },
+            changeStatus: (status: JokiServiceStatus) => {
+                setServiceStatus(serviceId, status);
+                trigger({
+                    from: serviceId,
+                    action: JokiServiceEvent.StatusUpdate,
+                    data: status,
                 });
             },
             initialized: (state: any) => {
                 trigger({
                     from: serviceId,
-                    action: "ServiceInitialized",
+                    action: JokiServiceEvent.ServiceInitialized,
                     data: state,
                 });
             },
@@ -299,6 +326,7 @@ export default function createJoki(options: JokiOptions): JokiInstance {
             add: addService,
             remove: removeService,
             getState: getServiceState,
+            getStatus: getServiceStatus,
         },
 
         interceptor: {
