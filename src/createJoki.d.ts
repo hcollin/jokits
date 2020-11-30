@@ -1,28 +1,40 @@
 import { JokiEvent } from "./models/JokiInterfaces";
-import { JokiProcessor } from "./engineParts/processorEngine";
-import { JokiSubscriber } from "./engineParts/subscriberEngine";
-import { Atom } from "./engineParts/atomEngine";
-import { JokiServiceFactory } from "./engineParts/serviceEngine";
+import { JokiInterceptor } from "./engineParts/interceptorEngine";
+import { JokiSubscriber, JokiSubscriberOnce } from "./engineParts/subscriberEngine";
+import { JokiAtom } from "./engineParts/atomEngine";
+import { JokiServiceFactory, JokiServiceStatus } from "./engineParts/serviceEngine";
 import { JokiMachineState, JokiState } from "./engineParts/stateEngine";
-interface JokiOptions {
+export interface JokiOptions {
 }
 export interface JokiInstance {
     trigger: (event: JokiEvent) => void | Promise<undefined>;
     on: (listener: JokiSubscriber) => () => void;
-    once: () => void;
+    once: (listener: JokiSubscriberOnce) => void;
     ask: (event: JokiEvent) => Promise<Map<string, any>>;
+    work: (event: JokiEvent, work: (data: any) => void) => void;
     service: ServiceApi;
-    processor: ProcessorApi;
+    interceptor: InterceptorApi;
     atom: AtomApi;
     state: StateMachineApi;
+    config: (key?: string, value?: string) => any;
+}
+export interface JokiConfigs {
+    logger: string;
+    triggerEventOnStateChange: string;
+}
+export declare enum JokiServiceEvent {
+    StateUpdate = "ServiceStateUpdated",
+    StatusUpdate = "ServiceStatusUpdated",
+    ServiceInitialized = "ServiceInitialized"
 }
 export interface ServiceApi {
     add: <T>(service: JokiServiceFactory<T>) => void;
-    remove: () => void;
+    remove: (serviceId: string) => void;
     getState: (serviceId: string) => any;
+    getStatus: (serviceId: string) => JokiServiceStatus;
 }
-export interface ProcessorApi {
-    add: (processor: JokiProcessor) => string;
+export interface InterceptorApi {
+    add: (interceptor: JokiInterceptor) => string;
     remove: (id: string) => void;
 }
 export interface StateMachineApi {
@@ -32,18 +44,32 @@ export interface StateMachineApi {
     listen: (fn: (state: JokiState) => void) => () => void;
 }
 export interface AtomApi {
-    get: <T>(atomId: string) => Atom<T>;
+    get: <T>(atomId: string) => JokiAtom<T>;
     set: <T>(atomId: string, value: T) => void;
+    has: (atomId: string) => boolean;
 }
 export interface JokiServiceApi {
     api: JokiInternalApi;
     updated: (state: any) => void;
+    changeStatus: (newStatus: JokiServiceStatus) => void;
+    initialized: (state: any) => void;
+    status: (serviceId?: string) => JokiServiceStatus;
+    eventIs: JokiEventDefaultEventListeners;
+}
+export interface JokiEventDefaultEventListeners {
+    statusChange: (event: JokiEvent) => boolean;
+    updateFromService: (event: JokiEvent, serviceId: string) => boolean;
+    initializationFromService: (event: JokiEvent, serviceId: string) => boolean;
 }
 export interface JokiInternalApi {
-    get: <T>(atomId: string) => Atom<T>;
-    set: <T>(atomId: string, value: T) => void;
-    trigger: (event: JokiEvent) => void | (Promise<undefined>);
+    getAtom: <T>(atomId: string) => JokiAtom<T>;
+    setAtom: <T>(atomId: string, value: T) => void;
+    hasAtom: (atomId: string) => boolean;
+    serviceIds: string[];
+    trigger: (event: JokiEvent) => void | Promise<undefined>;
     getState: () => JokiState;
+    changeState: (value: string) => void;
+    log: (level: "DEBUG" | "WARN" | "ERROR", msg: string, additional?: any) => void;
+    getServiceState: <T>(serviceId: string) => T | undefined;
 }
 export default function createJoki(options: JokiOptions): JokiInstance;
-export {};

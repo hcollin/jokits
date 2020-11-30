@@ -479,12 +479,11 @@
         };
     }
 
-    var JokiServiceEvent;
     (function (JokiServiceEvent) {
         JokiServiceEvent["StateUpdate"] = "ServiceStateUpdated";
         JokiServiceEvent["StatusUpdate"] = "ServiceStatusUpdated";
         JokiServiceEvent["ServiceInitialized"] = "ServiceInitialized";
-    })(JokiServiceEvent || (JokiServiceEvent = {}));
+    })(exports.JokiServiceEvent || (exports.JokiServiceEvent = {}));
     function createJoki(options) {
         var configs = {
             logger: "OFF",
@@ -674,7 +673,7 @@
                 updated: function (state) {
                     trigger({
                         from: serviceId,
-                        action: JokiServiceEvent.StateUpdate,
+                        action: exports.JokiServiceEvent.StateUpdate,
                         data: state
                     });
                 },
@@ -682,7 +681,7 @@
                     setServiceStatus(serviceId, status);
                     trigger({
                         from: serviceId,
-                        action: JokiServiceEvent.StatusUpdate,
+                        action: exports.JokiServiceEvent.StatusUpdate,
                         data: status
                     });
                 },
@@ -695,7 +694,7 @@
                 initialized: function (state) {
                     trigger({
                         from: serviceId,
-                        action: JokiServiceEvent.ServiceInitialized,
+                        action: exports.JokiServiceEvent.ServiceInitialized,
                         data: state
                     });
                 },

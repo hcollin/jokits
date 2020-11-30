@@ -1,4 +1,4 @@
-import createJoki, { JokiInstance, JokiInternalApi, JokiServiceApi, JokiConfigs } from "./createJoki";
+import createJoki, { JokiInstance, JokiInternalApi, JokiServiceApi, JokiConfigs, JokiServiceEvent } from "./createJoki";
 import { JokiEvent } from "./models/JokiInterfaces";
 import { JokiSubscriber, JokiSubscriberOnce } from "./engineParts/subscriberEngine";
 import { JokiServiceFactory, JokiService, JokiServiceStatus } from "./engineParts/serviceEngine";
@@ -24,4 +24,5 @@ export {
     JokiService,
     JokiConfigs,
     JokiServiceStatus,
+    JokiServiceEvent,
 };
