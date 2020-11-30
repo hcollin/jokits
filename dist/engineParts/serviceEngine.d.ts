@@ -3,7 +3,9 @@ import { JokiEvent } from "@App/models/JokiInterfaces";
 export interface ServiceEngine {
     add: <T>(serviceFactory: JokiServiceFactory<T>, api: JokiServiceApi) => void;
     run: (event: JokiEvent) => any;
+    work: (event: JokiEvent, cb: (data: any) => void) => any;
     asyncRun: (event: JokiEvent) => Promise<any>;
+    asyncWork: (event: JokiEvent, cb: (data: any) => void) => Promise<any>;
     remove: (serviceId: string) => void;
     list: () => string[];
     has: (serviceId: string) => boolean;
@@ -19,7 +21,7 @@ export declare enum JokiServiceStatus {
     ERROR = "Error"
 }
 export interface JokiService<T> {
-    eventHandler: (event: JokiEvent) => undefined | T | T[] | Map<string, T> | (Promise<T | T[] | Map<string, T> | undefined>) | void | Promise<void>;
+    eventHandler: (event: JokiEvent, work: ((data: any) => void) | null) => undefined | T | T[] | Map<string, T> | (Promise<T | T[] | Map<string, T> | undefined>) | void | Promise<void>;
     getState: () => T | T[] | Map<string, T> | undefined;
 }
 export interface ServiceCreator<T> {

@@ -5,4 +5,5 @@ export interface JokiEvent {
     broadcast?: boolean;
     data?: any;
     async?: boolean;
+    worker?: boolean;
 }

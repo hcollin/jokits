@@ -17,10 +17,15 @@ This box includes the following parts:
 
 ### 0.5.0
 
-Introduces the status to Services. This is an internal status enum that can be used to for example async processing
+This version introduces two new concepts to services: Status and Workers.
+
+Status is an internal status of the service that the service can change and it will automatically trigger and ServiceStatusUpdated event. This 
+functionality is mainly useful for services that work asynchronously and fetch data from apis etc.
+
+Worker functionality on the otherhand are callbacks that can be sent with the new work() function. This worker function is received as a second argument in the eventHandler can be used to send back information that is not in the default type of the service.
 
 * Service Status functionality
-* 
+* Service Worker functionlaity
 
 
 Use with jokits-react for built-in tools for state management.

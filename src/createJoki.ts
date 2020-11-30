@@ -13,7 +13,7 @@ export interface JokiInstance {
     on: (listener: JokiSubscriber) => () => void;
     once: (listener: JokiSubscriberOnce) => void;
     ask: (event: JokiEvent) => Promise<Map<string, any>>;
-
+    work: (event: JokiEvent, work: (data: any) => void) => void;
     service: ServiceApi;
     interceptor: InterceptorApi;
     atom: AtomApi;
@@ -66,7 +66,8 @@ export interface JokiServiceApi {
     updated: (state: any) => void;
     changeStatus: (newStatus: JokiServiceStatus) => void;
     initialized: (state: any) => void;
-    
+    status: (serviceId?: string) => JokiServiceStatus;
+ 
     eventIs: JokiEventDefaultEventListeners;
 }
 
@@ -132,6 +133,24 @@ export default function createJoki(options: JokiOptions): JokiInstance {
             }
             resolve(res);
         });
+    }
+
+    function work(event: JokiEvent, worker: (data: any) => void): void | Promise<void> {
+        _log("DEBUG", `WorkEvent`, event);
+        event.worker = true;
+        if(event.async === true) {
+            return new Promise(async (resolve, reject) => {
+                const ev: JokiEvent = await INTERCEPTOR.run(Object.freeze(event), internalApi());
+                await SUBSCRIBER.run(ev);
+                await SERVICES.asyncWork(ev, worker);
+                resolve();
+            })
+        } else {
+            const ev: JokiEvent = INTERCEPTOR.run(Object.freeze(event), internalApi());
+            SUBSCRIBER.run(ev);
+            SERVICES.work(ev, worker);
+        }
+
     }
 
     // INTERCEPTOR FUNCTIONS
@@ -259,6 +278,12 @@ export default function createJoki(options: JokiOptions): JokiInstance {
                     data: status,
                 });
             },
+            status: (otherServiceId?: string) => {
+                if(otherServiceId) {
+                    return getServiceStatus(otherServiceId);    
+                }
+                return getServiceStatus(serviceId);
+            },
             initialized: (state: any) => {
                 trigger({
                     from: serviceId,
@@ -321,6 +346,7 @@ export default function createJoki(options: JokiOptions): JokiInstance {
         on,
         once,
         ask,
+        work,
 
         service: {
             add: addService,

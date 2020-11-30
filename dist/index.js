@@ -314,11 +314,39 @@
             // Targeted event!
             if (services.has(event.to)) {
                 var service = services.get(event.to);
-                return service.service.eventHandler(event);
+                return service.service.eventHandler(event, null);
             }
             var results = new Map();
             services.forEach(function (cont) {
-                var res = cont.service.eventHandler(event);
+                var res = cont.service.eventHandler(event, null);
+                if (res !== undefined) {
+                    results.set(cont.id, res);
+                }
+            });
+            return results;
+        }
+        function asyncWork(event, worker) {
+            return __awaiter(this, void 0, void 0, function () {
+                var res;
+                return __generator(this, function (_a) {
+                    switch (_a.label) {
+                        case 0:
+                            res = work(event, worker);
+                            return [4 /*yield*/, res];
+                        case 1: return [2 /*return*/, _a.sent()];
+                    }
+                });
+            });
+        }
+        function work(event, worker) {
+            // Targeted event!
+            if (services.has(event.to)) {
+                var service = services.get(event.to);
+                return service.service.eventHandler(event, worker);
+            }
+            var results = new Map();
+            services.forEach(function (cont) {
+                var res = cont.service.eventHandler(event, worker);
                 if (res !== undefined) {
                     results.set(cont.id, res);
                 }
@@ -364,7 +392,9 @@
         return {
             add: add,
             run: run,
+            work: work,
             asyncRun: asyncRun,
+            asyncWork: asyncWork,
             remove: remove,
             list: list,
             has: has,
@@ -522,6 +552,36 @@
                 });
             }); });
         }
+        function work(event, worker) {
+            var _this = this;
+            _log("DEBUG", "WorkEvent", event);
+            event.worker = true;
+            if (event.async === true) {
+                return new Promise(function (resolve, reject) { return __awaiter(_this, void 0, void 0, function () {
+                    var ev;
+                    return __generator(this, function (_a) {
+                        switch (_a.label) {
+                            case 0: return [4 /*yield*/, INTERCEPTOR.run(Object.freeze(event), internalApi())];
+                            case 1:
+                                ev = _a.sent();
+                                return [4 /*yield*/, SUBSCRIBER.run(ev)];
+                            case 2:
+                                _a.sent();
+                                return [4 /*yield*/, SERVICES.asyncWork(ev, worker)];
+                            case 3:
+                                _a.sent();
+                                resolve();
+                                return [2 /*return*/];
+                        }
+                    });
+                }); });
+            }
+            else {
+                var ev = INTERCEPTOR.run(Object.freeze(event), internalApi());
+                SUBSCRIBER.run(ev);
+                SERVICES.work(ev, worker);
+            }
+        }
         // INTERCEPTOR FUNCTIONS
         function addInterceptor(interceptor) {
             _log("DEBUG", "New Interceptor", interceptor);
@@ -627,6 +687,12 @@
                         data: status
                     });
                 },
+                status: function (otherServiceId) {
+                    if (otherServiceId) {
+                        return getServiceStatus(otherServiceId);
+                    }
+                    return getServiceStatus(serviceId);
+                },
                 initialized: function (state) {
                     trigger({
                         from: serviceId,
@@ -689,6 +755,7 @@
             on: on,
             once: once,
             ask: ask,
+            work: work,
             service: {
                 add: addService,
                 remove: removeService,

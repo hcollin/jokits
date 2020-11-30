@@ -5,7 +5,9 @@ import { JokiEvent } from "@App/models/JokiInterfaces";
 export interface ServiceEngine {
     add: <T>(serviceFactory: JokiServiceFactory<T>, api: JokiServiceApi) => void;
     run: (event: JokiEvent) => any;
+    work: (event: JokiEvent, cb: (data: any) => void) => any;
     asyncRun: (event: JokiEvent) => Promise<any>;
+    asyncWork: (event: JokiEvent, cb: (data: any) => void) => Promise<any>;
     remove: (serviceId: string) => void;
     list: () => string[];
     has: (serviceId: string) => boolean;
@@ -29,7 +31,7 @@ export enum JokiServiceStatus {
 };
 
 export interface JokiService<T> {
-    eventHandler: (event: JokiEvent) => undefined|T|T[]|Map<string, T>|(Promise<T|T[]|Map<string, T>|undefined>)|void|Promise<void>;
+    eventHandler: (event: JokiEvent, work: ((data: any) => void)|null) => undefined|T|T[]|Map<string, T>|(Promise<T|T[]|Map<string, T>|undefined>)|void|Promise<void>;
     getState: () => T|T[]|Map<string, T>|undefined;
 }
 
@@ -76,12 +78,35 @@ export default function serviceEngine(): ServiceEngine {
         // Targeted event!
         if(services.has(event.to)) {
             const service = services.get(event.to);
-            return service.service.eventHandler(event);
+            return service.service.eventHandler(event, null);
         }
 
         const results: Map<String, any> =  new Map<string, any>();
         services.forEach((cont: ServiceContainer) => {
-            const res = cont.service.eventHandler(event);
+            const res = cont.service.eventHandler(event, null);
+            if(res !== undefined) {
+                results.set(cont.id, res);
+            }
+        })
+        return results;
+
+    }
+    async function asyncWork(event: JokiEvent, worker: (data: any) => void): Promise<any> {
+        const res = work(event, worker);
+        return await res;
+    }
+
+    function work(event: JokiEvent, worker: (data: any) => void): any {
+        
+        // Targeted event!
+        if(services.has(event.to)) {
+            const service = services.get(event.to);
+            return service.service.eventHandler(event, worker);
+        }
+
+        const results: Map<String, any> =  new Map<string, any>();
+        services.forEach((cont: ServiceContainer) => {
+            const res = cont.service.eventHandler(event, worker);
             if(res !== undefined) {
                 results.set(cont.id, res);
             }
@@ -134,7 +159,9 @@ export default function serviceEngine(): ServiceEngine {
     return {
         add,
         run,
+        work,
         asyncRun,
+        asyncWork,
         remove,
         list,
         has,

@@ -1,8 +1,8 @@
-import createJoki, { JokiServiceApi, JokiInternalApi } from "./createJoki";
+import createJoki, { JokiServiceApi, JokiInternalApi, JokiServiceEvent } from "./createJoki";
 import { JokiEvent } from "./models/JokiInterfaces";
 import { JokiAtom } from "./engineParts/atomEngine";
 import { JokiState } from "./engineParts/stateEngine";
-import { JokiService } from "./engineParts/serviceEngine";
+import { JokiService, JokiServiceStatus } from "./engineParts/serviceEngine";
 
 describe("createJoki", () => {
     it("Simple trigger, interceptor, listener", () => {
@@ -149,6 +149,165 @@ describe("createJoki", () => {
         expect(call2).toBeCalledTimes(2);
 
         expect.assertions(5);
+    });
+
+    it("Service Status functionality", () => {
+        const joki = createJoki({});
+        const call1 = jest.fn();
+        function testService(sid: string, api: JokiServiceApi): JokiService<string> {
+            let value: string = "alpha";
+
+            function eventHandler(event: JokiEvent) {
+                if (event.to === sid) {
+                    if (event.action === "ready") {
+                        api.changeStatus(JokiServiceStatus.READY);
+                    }
+                    if (event.action === "doing") {
+                        api.changeStatus(JokiServiceStatus.PROCESSING);
+                    }
+
+                    if (event.action === "amReady") {
+                        amReady();
+                    }
+
+                    if (event.action === "otherReady") {
+                        youReady(event.data);
+                    }
+                }
+            }
+
+            function amReady() {
+                if (api.status() !== JokiServiceStatus.READY) {
+                    throw new Error(`This service ${sid} is not ready`);
+                }
+                return true;
+            }
+
+            function youReady(t: string) {
+                if (api.status(t) !== JokiServiceStatus.READY) {
+                    throw new Error(`Service ${t} is not ready`);
+                }
+            }
+
+            function getState(): string {
+                return value;
+            }
+
+            return {
+                eventHandler,
+                getState,
+            };
+        }
+
+        joki.service.add<string>({
+            serviceId: "TestServiceOne",
+            service: testService,
+        });
+
+        joki.service.add<string>({
+            serviceId: "TestServiceTwo",
+            service: testService,
+            initStatus: JokiServiceStatus.CLOSED,
+        });
+
+        expect(joki.service.getStatus("TestServiceOne")).toBe(JokiServiceStatus.UNKNOWN);
+        expect(joki.service.getStatus("TestServiceTwo")).toBe(JokiServiceStatus.CLOSED);
+
+        joki.trigger({
+            to: "TestServiceOne",
+            action: "ready",
+        });
+
+        expect(joki.service.getStatus("TestServiceOne")).toBe(JokiServiceStatus.READY);
+
+        joki.trigger({
+            to: "TestServiceOne",
+            action: "amReady",
+        });
+
+        joki.trigger({
+            to: "TestServiceTwo",
+            action: "otherReady",
+            data: "TestServiceOne",
+        });
+
+        joki.on({
+            from: "TestServiceTwo",
+            action: JokiServiceEvent.StatusUpdate,
+            fn: (e: JokiEvent) => {
+                call1();
+            },
+        });
+
+        joki.trigger({
+            to: "TestServiceTwo",
+            action: "ready",
+        });
+
+        joki.trigger({
+            to: "TestServiceTwo",
+            action: "doing",
+        });
+
+        joki.trigger({
+            to: "TestServiceOne",
+            action: "doing",
+        });
+
+        expect(call1).toBeCalledTimes(2);
+    });
+
+    it("Service work", () => {
+        const joki = createJoki({});
+        const call1 = jest.fn();
+
+        function testService(sid: string, api: JokiServiceApi): JokiService<string> {
+            let value: string = "alpha";
+
+            function eventHandler(event: JokiEvent, worker: (data: any) => void) {
+                if (event.to === sid) {
+
+                    if(event.action === "change") {
+                        value = event.data;
+                        api.updated(value);
+                    }
+
+                    if(event.action === "upper") {
+                        value = value.toUpperCase();
+                        api.updated(value);
+                        worker(value);
+                    }
+
+                }
+            }
+
+            function getState(): string {
+                return value;
+            }
+
+            return {
+                eventHandler,
+                getState,
+            };
+        }
+
+        joki.service.add({
+            serviceId: "S1",
+            service: testService,
+            initStatus: JokiServiceStatus.READY,
+        });
+
+        joki.work({
+            to: "S1",
+            action: "upper"
+        }, (value: string) => {
+            expect(value).toBe("ALPHA");
+            call1();
+        });
+
+
+        expect(call1).toBeCalledTimes(1);
+
     });
 
     it("Function ask works with services and atoms", async () => {

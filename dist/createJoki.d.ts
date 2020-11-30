@@ -11,6 +11,7 @@ export interface JokiInstance {
     on: (listener: JokiSubscriber) => () => void;
     once: (listener: JokiSubscriberOnce) => void;
     ask: (event: JokiEvent) => Promise<Map<string, any>>;
+    work: (event: JokiEvent, work: (data: any) => void) => void;
     service: ServiceApi;
     interceptor: InterceptorApi;
     atom: AtomApi;
@@ -52,6 +53,7 @@ export interface JokiServiceApi {
     updated: (state: any) => void;
     changeStatus: (newStatus: JokiServiceStatus) => void;
     initialized: (state: any) => void;
+    status: (serviceId?: string) => JokiServiceStatus;
     eventIs: JokiEventDefaultEventListeners;
 }
 export interface JokiEventDefaultEventListeners {

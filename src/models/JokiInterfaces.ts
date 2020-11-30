@@ -7,7 +7,9 @@ export interface JokiEvent {
     broadcast?: boolean;
     data?: any;
     async?: boolean;    // IF set to true run event in async mode aka do not halt execution
+    worker?: boolean;
 }
+
 
 
 
