@@ -1,8 +1,8 @@
 (function (global, factory) {
-    typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
-    typeof define === 'function' && define.amd ? define(factory) :
-    (global = global || self, global.jokits = factory());
-}(this, (function () { 'use strict';
+    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
+    typeof define === 'function' && define.amd ? define(['exports'], factory) :
+    (global = global || self, factory(global.jokits = {}));
+}(this, (function (exports) { 'use strict';
 
     /*! *****************************************************************************
     Copyright (c) Microsoft Corporation.
@@ -275,14 +275,13 @@
         };
     }
 
-    var JokiServiceStatus;
     (function (JokiServiceStatus) {
         JokiServiceStatus["UNKNOWN"] = "Unknown";
         JokiServiceStatus["CLOSED"] = "Closed";
         JokiServiceStatus["READY"] = "Ready";
         JokiServiceStatus["PROCESSING"] = "Processing";
         JokiServiceStatus["ERROR"] = "Error";
-    })(JokiServiceStatus || (JokiServiceStatus = {}));
+    })(exports.JokiServiceStatus || (exports.JokiServiceStatus = {}));
     function serviceEngine() {
         var services = new Map();
         function add(serviceFactory, api) {
@@ -293,7 +292,7 @@
             var cont = {
                 id: serviceFactory.serviceId,
                 service: service,
-                status: serviceFactory.initStatus || JokiServiceStatus.UNKNOWN
+                status: serviceFactory.initStatus || exports.JokiServiceStatus.UNKNOWN
             };
             services.set(serviceFactory.serviceId, cont);
         }
@@ -377,7 +376,7 @@
             if (service) {
                 return service.status;
             }
-            return JokiServiceStatus.UNKNOWN;
+            return exports.JokiServiceStatus.UNKNOWN;
         }
         function setServiceStatus(serviceId, newStatus) {
             var service = services.get(serviceId);
@@ -781,6 +780,8 @@
         };
     }
 
-    return createJoki;
+    exports.default = createJoki;
+
+    Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
